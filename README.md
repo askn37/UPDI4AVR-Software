@@ -27,7 +27,7 @@ For AVR DA/DB, megaAVR-0, tinyAVR-2 series from using avrdude, Arduino IDE\
 
 ## Arduino IDE への導入
 
-1. .ZIPアーカイブをダウンロードする。
+1. .ZIPアーカイブをダウンロードする。[Click here](https://github.com/askn37/UPDI4AVR/archive/master.zip)
 1. ライブラリマネージャで読み込む\
     スケッチ -> ライブラリをインクルード -> .ZIP形式のライブラリをインストール...
 1. ツールメニューのボード選択で、UPDIホストにする 適切なターゲットを選ぶ（次節）
