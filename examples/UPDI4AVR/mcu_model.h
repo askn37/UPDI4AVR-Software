@@ -8,6 +8,7 @@
  * @copyright Copyright (c) 2022
  *
  */
+#pragma once
 
 #undef AVR_NANO_4809_328MODE
 

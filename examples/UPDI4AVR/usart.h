@@ -8,6 +8,8 @@
  * @copyright Copyright (c) 2022
  *
  */
+#pragma once
+#include <util/atomic.h>
 #include "configuration.h"
 
 namespace USART {

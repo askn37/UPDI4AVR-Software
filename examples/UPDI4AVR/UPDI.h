@@ -8,6 +8,11 @@
  * @copyright Copyright (c) 2022
  *
  */
+#pragma once
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include <util/crc16.h>
+#include <stddef.h>
 #include <string.h>
 #include "configuration.h"
 

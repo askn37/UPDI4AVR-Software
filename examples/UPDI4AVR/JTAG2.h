@@ -8,6 +8,7 @@
  * @copyright Copyright (c) 2022
  *
  */
+#pragma once
 #include <string.h>
 #include <setjmp.h>
 #include "configuration.h"
