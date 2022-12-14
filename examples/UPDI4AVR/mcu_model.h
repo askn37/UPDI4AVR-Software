@@ -103,8 +103,8 @@
   #define __AVR_MEGA_TINY__
   #define __AVR_TINY_2X__
 #else
-  #error "This MCU family is not supported"
-    #include "This MCU family is not supported"
+  #assert This MCU family is not supported
+  #include BUILD_STOP
 #endif
 
 // end of code
