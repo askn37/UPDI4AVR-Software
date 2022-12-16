@@ -25,6 +25,12 @@ For AVR DA/DB, megaAVR-0, tinyAVR-2 series from using avrdude, Arduino IDE\
 - UARTパススルー対応
   - ライタとして動作しない間はターゲットの UARTが PCと繋げられる
 
+### UPDI4AVR hardware
+
+[<img src="https://askn37.github.io/product/UPDI4AVR/2221_Zinnia-UPDI4AVRF-MZU2216B/Zinnia-UPDI4AVRF-MZU2216B_top.svg" width="160">](https://askn37.github.io/product/UPDI4AVR/2221_Zinnia-UPDI4AVRF-MZU2216B/Zinnia-UPDI4AVRF-MZU2216B_top.svg)
+
+[[ハードウェアとしての UPDI4AVR の紹介はこちら]](https://askn37.github.io/product/UPDI4AVR)
+
 ## Arduino IDE への導入
 
 [askn37 / Multix Zinnia Product SDK](https://askn37.github.io/)をインストール済の場合、
