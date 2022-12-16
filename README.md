@@ -27,12 +27,20 @@ For AVR DA/DB, megaAVR-0, tinyAVR-2 series from using avrdude, Arduino IDE\
 
 ## Arduino IDE への導入
 
+[askn37 / Multix Zinnia Product SDK](https://askn37.github.io/)をインストール済の場合、
+このライブラリは既に用意されている。
+
+- `ファイル` -> `スケッチ例` -> `UPDI4AVR` を選ぶ\
+  重要！__ビルド可能なボード選択をしていなければ、メニューにこの選択肢は表示されない__
+
+そうでなければ次のようにする。
+
 1. .ZIPアーカイブをダウンロードする。[Click here](https://github.com/askn37/UPDI4AVR/archive/master.zip)
 1. ライブラリマネージャで読み込む\
-    スケッチ -> ライブラリをインクルード -> .ZIP形式のライブラリをインストール...
+  `スケッチ` -> `ライブラリをインクルード` -> `.ZIP形式のライブラリをインストール...`
 1. ツールメニューのボード選択で、UPDIホストにする 適切なターゲットを選ぶ（次節）
-1. ファイルメニューのスケッチ例から、UPDI4AVRを選ぶ\
-    重要！__ビルド可能なボード選択をしていなければ、メニューにこの選択肢は表示されない__
+1. `ファイル` -> `スケッチ例` -> `UPDI4AVR` を選ぶ\
+  重要！__ビルド可能なボード選択をしていなければ、メニューにこの選択肢は表示されない__
 
 ## ライタホストに選択可能なボード種別
 
@@ -41,7 +49,7 @@ For AVR DA/DB, megaAVR-0, tinyAVR-2 series from using avrdude, Arduino IDE\
 megaAVR-0 シリーズ、tinyAVR-2 シリーズ、AVR DA/DB シリーズのうち、
 
 - 8KB 以上の FLASH 領域
-- 2KB 以上の SRAM 容量
+- 1KB 以上の SRAM 容量
 - 2組の ハードウェアUSART サポート
 
 を有していること。
@@ -112,7 +120,7 @@ megaAVR-0 シリーズ、tinyAVR-2 シリーズ、AVR DA/DB シリーズのう�
 UPDI4AVR を書き込んでも制御が横取りされるために期待した動作をしないことが多い。
 
 > オンボードUSB を使わずに追加の UART を JTAG通信用に別途用意し、DTR/RTS信号も配線すれば良いが
-ほぼ同じ部材で SerilUPDI 書込器を作れてしまうので、それだと価値がない。
+ほぼ同じ部材で SerialUPDI 書込器を作れてしまうので、それだと価値がない。
 
 ## ターゲットに選択可能な modernAVR 品種
 
