@@ -143,7 +143,7 @@ UPDI4AVR を書き込んでも制御が横取りされるために期待した�
 |         |          |ATtiny416 |ATtiny816 |__ATtiny1616__|__ATtiny3216__|VQFN20 SOP20 |
 |         |          |ATtiny417 |ATtiny817 |ATtiny1617 |ATTiny3217 |VQFN24       |
 |tinyAVR-2|          |ATtiny424 |__ATtiny824__|ATtiny1624 |ATtiny3224 |SOP14 TSSOP14|
-|         |          |ATtiny426 |ATtiny826 |ATtiny1626 |ATtiny3226 |VQFN20 SOP20 |
+|         |          |ATtiny426 |ATtiny826 |__ATtiny1626__|ATtiny3226 |VQFN20 SOP20 |
 |         |          |ATtiny427 |ATtiny827 |ATtiny1627 |ATTiny3227 |VQFN24       |
 ||8KB|16KB|32KB|48KB|||
 |megaAVR-0|ATmega808 |ATmega1608|ATmega3208|__ATmega4808__|           |TSOP28 TQFP32|
@@ -236,6 +236,12 @@ EEPROM書換などの高度な指示をすることは原則出来ない。
   - なるべく短い線材を使う
 - 復旧に高電圧プログラミングが必要になる FUSE設定を安易に試さない
   - そういう FUSE をくれぐれも間違って書かない
+
+## 更新情報
+
+- 2023/03/26版
+  AVR_Dx系統以降の`EEPROM`書換不具合修正（*avrdude.conf*改定）
+  AVR_Dx系統以降の`USERROW`通常書換に対応。
 
 ## 課題（Rev.2に向けて）
 

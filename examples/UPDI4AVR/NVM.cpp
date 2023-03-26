@@ -70,9 +70,17 @@ bool NVM::write_memory (void) {
         : NVM::write_fuse(start_addr, JTAG2::packet.body[10])
       );
     }
-    case JTAG2::MTYPE_EEPROM :
-    case JTAG2::MTYPE_EEPROM_XMEGA :
     case JTAG2::MTYPE_USERSIG : {
+      // AVR_DA/DB/DD/EA is Flash Type
+      if (UPDI::NVMPROGVER == 2) {
+        if (!NVM::nvm_ctrl_v2(NVM::NVM_V2_CMD_FLPER)) return false;
+        if (!UPDI::st8(start_addr, 0xFF)) return false;
+        return NVM::write_flash(start_addr, &JTAG2::packet.body[10], byte_count);
+      }
+      // megaAVR/tinyAVR is EEPROM Type
+    }
+    case JTAG2::MTYPE_EEPROM :
+    case JTAG2::MTYPE_EEPROM_XMEGA : {
       return NVM::write_eeprom(start_addr, &JTAG2::packet.body[10], byte_count);
     }
   }
@@ -155,7 +163,6 @@ bool NVM::read_flash (uint32_t start_addr, uint8_t *data, size_t byte_count) {
 }
 
 bool NVM::write_flash (uint32_t start_addr, uint8_t *data, size_t byte_count) {
-  static uint32_t before_addr = ~1;
   static uint8_t set_ptr[] = {
       UPDI::UPDI_SYNCH
     , UPDI::UPDI_ST | UPDI::UPDI_PTR_REG | UPDI::UPDI_DATA3
@@ -176,14 +183,6 @@ bool NVM::write_flash (uint32_t start_addr, uint8_t *data, size_t byte_count) {
     , UPDI::UPDI_STCS | UPDI::UPDI_CS_CTRLA
     , 0x0
   };
-
-  if (before_addr == start_addr) {
-    #ifdef DEBUG_USE_USART
-    DBG::print("(!BLK)", false);
-    #endif
-    return false;
-  }
-  before_addr = start_addr;
 
   /* fallback chek and re-try */
   if (((UPDI::CHIP_ERASE | UPDI::UPDI_LOWBAUD) & UPDI::CONTROL)
