@@ -1506,15 +1506,7 @@ programmer
   desc  = "JTAGv2 to UPDI bridge";
   type  = "jtagmkii_pdi";
   connection_type = serial;
-  baudrate = 460800;
-;
-
-programmer
-  id    = "updi4avr_fast";
-  desc  = "JTAGv2 to UPDI bridge";
-  type  = "jtagmkii_pdi";
-  connection_type = serial;
-  baudrate = 1500000;
+  baudrate = 921600;
 ;
 
 #

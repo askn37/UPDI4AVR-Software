@@ -147,6 +147,7 @@ namespace JTAG2 {
   extern uint8_t CONTROL;
   extern uint8_t PARAM_EMU_MODE_VAL;
   extern jtag_baud_rate_e PARAM_BAUD_RATE_VAL;
+  extern uint16_t flash_pagesize;
 
   /* JTAG2 packet */
   constexpr uint8_t MESSAGE_START = 0x1B; /* SOH */

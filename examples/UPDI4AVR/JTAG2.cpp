@@ -18,14 +18,15 @@
 #include "abort.h"
 #include "dbg.h"
 
-/* Global valiables */
-uint8_t JTAG2::CONTROL;
-uint8_t JTAG2::PARAM_EMU_MODE_VAL;
-JTAG2::jtag_baud_rate_e JTAG2::PARAM_BAUD_RATE_VAL;
-JTAG2::jtag_packet_t JTAG2::packet;
-
-/* Local values */
 namespace JTAG2 {
+/* Global valiables */
+  uint8_t CONTROL;
+  uint8_t PARAM_EMU_MODE_VAL;
+  jtag_baud_rate_e PARAM_BAUD_RATE_VAL;
+  jtag_packet_t packet;
+  uint16_t flash_pagesize;
+  uint8_t eeprom_pagesize;
+
   const uint16_t BAUD_TABLE[] = {
       BAUD_REG_VAL(2400)    // 0: not used dummy
     , BAUD_REG_VAL(2400)    // 1: under limit low speed
@@ -358,9 +359,9 @@ void JTAG2::get_parameter (void) {
 void JTAG2::set_device_descriptor (void) {
   #ifdef DEBUG_USE_USART
   // uiFlashPageSize
-  uint16_t flash_pagesize = *((uint16_t*)&packet.body[0x0f4]);
+  flash_pagesize = *((uint16_t*)&packet.body[0x0f4]);
   // ucEepromPageSize
-  uint16_t eeprom_pagesize = packet.body[0x0f6];
+  eeprom_pagesize = packet.body[0x0f6];
   // ulFlashSize
   uint32_t flash_areasize = *((uint32_t*)&packet.body[0x0fd]);
   // uiFlashpages

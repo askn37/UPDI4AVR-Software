@@ -62,9 +62,17 @@ bool NVM::write_memory (void) {
     case JTAG2::MTYPE_XMEGA_FLASH : {
       return NVM::write_flash(start_addr, &JTAG2::packet.body[10], byte_count);
     }
-    case JTAG2::MTYPE_FUSE_BITS :
     case JTAG2::MTYPE_LOCK_BITS : {
-      if (byte_count != 1) break;
+      if ((uint8_t)byte_count == 1) {
+        return (UPDI::NVMPROGVER == 2
+          ? NVM::write_fuse_v2(start_addr, JTAG2::packet.body[10])
+          : NVM::write_fuse(start_addr, JTAG2::packet.body[10])
+        );
+      }
+      return NVM::write_eeprom(start_addr, &JTAG2::packet.body[10], byte_count);
+    }
+    case JTAG2::MTYPE_FUSE_BITS : {
+      if ((uint8_t)byte_count != 1) break;
       return (UPDI::NVMPROGVER == 2
         ? NVM::write_fuse_v2(start_addr, JTAG2::packet.body[10])
         : NVM::write_fuse(start_addr, JTAG2::packet.body[10])
@@ -204,6 +212,10 @@ bool NVM::write_flash (uint32_t start_addr, uint8_t *data, size_t byte_count) {
 
     /* NVMCTRL v2 */
     if (UPDI::NVMPROGVER == 2) {
+      if (((uint16_t)start_addr & (JTAG2::flash_pagesize - 1)) == 0) {
+        if (!NVM::nvm_ctrl_v2(NVM::NVM_V2_CMD_FLPER)) break;
+        if (!UPDI::st8(start_addr, 0xFF)) break;
+      }
       if (!NVM::nvm_ctrl_v2(NVM::NVM_V2_CMD_FLWR)) break;
     }
     /* NVMCTRL v1 */

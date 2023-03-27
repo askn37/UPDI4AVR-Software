@@ -182,7 +182,7 @@ bool UPDI::send_repeat_header (uint8_t cmd, uint32_t addr, size_t len) {
 bool UPDI::st8 (uint32_t addr, uint8_t data) {
   static uint8_t set_ptr[] = {
       UPDI::UPDI_SYNCH
-    , UPDI::UPDI_STS | UPDI::UPDI_ADDR2 | UPDI::UPDI_DATA1
+    , UPDI::UPDI_STS | UPDI::UPDI_ADDR3 | UPDI::UPDI_DATA1
     , 0, 0, 0, 0  // qword address
   };
   for (;;) {

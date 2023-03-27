@@ -345,7 +345,6 @@ static struct {
 UPDI4AVR は、この新しい定義設定に対応している。
 
 [Appendix](../Appendix) に添付の *avrdude.conf* には以下の記述が追加されている。
-（従来の4倍速と、最高速度の半分である1.5Mbps）
 
 - baudrate 値は、`-b`オプションで変更できる。
 ただし指定可能なのは前述の対応数値のみ。
@@ -361,15 +360,7 @@ programmer
   desc  = "JTAGv2 to UPDI bridge";
   type  = "jtagmkii_pdi";
   connection_type = serial;
-  baudrate = 430800;
-;
-
-programmer
-  id    = "updi4avr_fast";
-  desc  = "JTAGv2 to UPDI bridge";
-  type  = "jtagmkii_pdi";
-  connection_type = serial;
-  baudrate = 1500000;
+  baudrate = 921600;
 ;
 ```
 
@@ -377,21 +368,12 @@ programmer
 ここまで記述してきたコマンドラインを、以下のように変えることができる。
 
 ```sh
-# 430.8K bps 接続（4倍速）
+# 921.6K bps 接続（8倍速）
 avrdude -C avrdude.conf -c updi4avr -P /dev/cu.usbserial-1420 -p atmega4808
 ```
 
 ```pre
-avrdude: serial_baud_lookup(): Using non-standard baud rate: 460800
-```
-
-```sh
-# 1.5M bps 接続
-avrdude -C avrdude.conf -c updi4avr_fast -P /dev/cu.usbserial-1420 -p atmega4808
-```
-
-```pre
-avrdude: serial_baud_lookup(): Using non-standard baud rate: 1500000
+avrdude: serial_baud_lookup(): Using non-standard baud rate: 921600
 ```
 
 この設定で AVR128DB32 に対して FLASH領域 128KB を読み書きすると以下の速度が達成できる。
@@ -404,43 +386,35 @@ $ dd if=/dev/zero of=128kb.raw count=128 bs=1024
 131072 bytes transferred in 0.000848 secs (154556034 bytes/sec)
 
 # これを指定して書き込み、ベリファイする
-$ avrdude -C avrdude.conf -p avr128db32 -c updi4avr_fast \
- -P /dev/cu.usbserial-1420 -U flash:w:128kb.raw:r
+$ avrdude -C avrdude.conf -p avr128db32 -c updi4avr \
+ -P /dev/cu.usbserial-1420 -e -U flash:w:128kb.raw:r
 ```
 
 ```pre
 avrdude: AVR device initialized and ready to accept instructions
 
-Reading | ################################################## | 100% 0.02s
+Reading | ################################################## | 100% 0.12s
 
 avrdude: Device signature = 0x1e970d (probably avr128db32)
-avrdude: NOTE: "flash" memory has been specified, an erase cycle will be performed
-         To disable this feature, specify the -D option.
 avrdude: erasing chip
 avrdude: reading input file "128kb.raw"
 avrdude: writing flash (131072 bytes):
 
-Writing | ################################################## | 100% 16.26s
+Writing | ################################################## | 100% 27.38s
 
 avrdude: 131072 bytes of flash written
 avrdude: verifying flash memory against 128kb.raw:
 
-Reading | ################################################## | 100% 10.13s
+Reading | ################################################## | 100% 21.11s
 
 avrdude: 131072 bytes of flash verified
 
 avrdude done.  Thank you.
 ```
 
-実測では 115200bps 時の約2倍程度。
-PC〜UPDI4AVR間の通信速度差は約13倍なのでその差を引くと真の
-UPDI処理能力は FLASH 128KB に対して書込14秒、読込8秒程度となる。\
-UPDI通信 225000 kbps での理論値は約5.7秒なので、
-残りが単線半二重切替オーバーヘッドと FLASH書換に掛かる実時間と考えられる。
-
 なお実用上の最高/最低速度はホスト側の主クロックに依存しており、
-限度を超えると以下の警告が出てリトライが多発し大幅に処理速度が低下する。
-2M bps 以上と 9600 bps 以下はおおくの場合正しく利用できない。
+限度を超えると以下の警告が出てリトライが多発し正常に動作しなくなる。
+2M bps 以上と 9600 bps 未満はおおくの場合正しく利用できない。
 
 ```pre
 avrdude: jtagmkII_paged_load(): timeout/error communicating with programmer (status -1)
