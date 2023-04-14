@@ -11,7 +11,7 @@
 #pragma once
 #include <stddef.h>
 #include <setjmp.h>
-#include "configuration.h"
+#include "../configuration.h"
 
 #if defined(PGEN_USE_PORTA)
   #define PROG_STATE_PORT PORTA

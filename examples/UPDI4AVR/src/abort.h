@@ -10,7 +10,7 @@
  */
 #pragma once
 #include <setjmp.h>
-#include "configuration.h"
+#include "../configuration.h"
 #include "timer.h"
 
 /* Ex) ATmegaXX08 : implimented TCB0, TCB1, TCB2, not impliment TCB3 */

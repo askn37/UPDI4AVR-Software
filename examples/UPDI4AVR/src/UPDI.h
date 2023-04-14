@@ -2,10 +2,10 @@
  * @file UPDI.h
  * @author askn (K.Sato) multix.jp
  * @brief
- * @version 0.1
- * @date 2022-12-12
+ * @version 0.2
+ * @date 2023-04-14
  *
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2023
  *
  */
 #pragma once
@@ -14,7 +14,7 @@
 #include <util/crc16.h>
 #include <stddef.h>
 #include <string.h>
-#include "configuration.h"
+#include "../configuration.h"
 
 namespace UPDI {
   extern volatile uint8_t LASTL;
@@ -173,6 +173,9 @@ namespace UPDI {
   inline bool reset (bool logic) {
     return set_cs_stat(UPDI_CS_ASI_RESET_REQ, (logic ? UPDI_RSTREQ : 0));
   }
+inline bool set_cs_ctra (const uint8_t data) {
+  return set_cs_stat(UPDI_CS_CTRLA, data);
+}
   bool read_parameter (void);
   bool check_sig (void);
   void hv_pulse (void);

@@ -10,7 +10,7 @@
  */
 #pragma once
 #include <string.h>
-#include "configuration.h"
+#include "../configuration.h"
 
 #ifdef DEBUG_USE_USART
 namespace DBG {

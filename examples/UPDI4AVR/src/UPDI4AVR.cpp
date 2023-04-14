@@ -8,7 +8,7 @@
  * @copyright Copyright (c) 2022
  *
  */
-#include "configuration.h"
+#include "../configuration.h"
 #include "JTAG2.h"
 #include "UPDI.h"
 #include "sys.h"

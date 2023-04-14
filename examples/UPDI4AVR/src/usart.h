@@ -10,7 +10,7 @@
  */
 #pragma once
 #include <util/atomic.h>
-#include "configuration.h"
+#include "../configuration.h"
 
 namespace USART {
   uint16_t calc_baudrate (uint32_t baudrate);

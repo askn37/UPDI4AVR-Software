@@ -248,6 +248,11 @@ EEPROM書換などの高度な指示をすることは原則出来ない。
 
 ## 更新情報
 
+- 2023/04/14版
+  - AVR_EA系統に対応。（UPDI4AVR Firmwareからのバックポート）
+  - ファイル配置変更。
+  - `FUSE`書換は以前と同じ値なら何もしないように対応。
+
 - 2023/03/26版
   - 標準通信速度を 912.6kbps に訂正。（多数のUSB-UART変換器での実用限界速度）
   - AVR_Dx系統以降の`EEPROM`書換不具合修正。（*avrdude.conf*改定）
@@ -257,7 +262,7 @@ EEPROM書換などの高度な指示をすることは原則出来ない。
 ## 関連リンク
 
 - [askn37 / Multix Zinnia Product SDK](https://askn37.github.io/)
--- megaAVR-0, tinyAVR-0/1/2, AVR DA/DB/DD series support
+-- megaAVR-0, tinyAVR-0/1/2, AVR DA/DB/DD/EA series support
 - [MCUdude / MegaCoreX](https://github.com/MCUdude/MegaCoreX)
 -- megaAVR-0 series support
 - [SpenceKonde / megaTinyCore](https://github.com/SpenceKonde/megaTinyCore)

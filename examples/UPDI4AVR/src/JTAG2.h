@@ -11,7 +11,7 @@
 #pragma once
 #include <string.h>
 #include <setjmp.h>
-#include "configuration.h"
+#include "../configuration.h"
 
 #define BAUD_REG_VAL(baud) ((((F_CPU*8)/baud)+1)>> 1)
 #define PARAM_VTARGET_VAL 5000

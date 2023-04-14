@@ -9,7 +9,7 @@
  *
  */
 #pragma once
-#include "mcu_model.h"
+#include "src/mcu_model.h"
 
 /**************************************
  * PLEASE SELECT TARGET BOARAD PINOUT *
