@@ -20,7 +20,7 @@ For AVR DA/DB, megaAVR-0, tinyAVR-2 series from using avrdude, Arduino IDE\
 ## 特徴
 
 - UPDI対応 AVR のための、プログラミングホストファームウェア
-  - megaAVR-0系列、tinyAVR-2系列、AVR DA/DB系列用
+  - megaAVR-0系列、tinyAVR-2系列、AVR DA/DB/DD/EA系列用
   - ホスト側、ターゲット側の双方を同系列の UPDI対応デバイスで統一できる
 - Arduino IDE および avrdude コマンドラインから使用可能
   - JTAGmkIIプロトコル準拠（JTAG2UPDI 互換）
@@ -79,11 +79,11 @@ megaAVR-0 シリーズ、tinyAVR-2 シリーズ、AVR DA/DB シリーズのう�
 - Arduino Nano Every (ATmega4809) -- __注意事項有り。（後述）__
 
 [askn37 / Multix Zinnia Product SDK](https://askn37.github.io/)
--- megaAVR-0, tinyAVR-0/1/2, AVR DA/DB/DD series support
+-- megaAVR-0, tinyAVR-0/1/2, AVR DA/DB/DD/EA series support
 
 > デフォルトSDK。HV書込対応。
 
-- megaAVR-0 / tinyAVR-2 / AVR DA/DB
+- megaAVR-0 / tinyAVR-2 / AVR DA/DB/DD/EA
 - Microchip Curiosity Nano ATmega4809 (DM320115)
 - Microchip Curiosity Nano ATtiny1627 (DM080104)
 - Microchip Curiosity Nano AVR128DA48 (DM164151)
@@ -104,7 +104,7 @@ megaAVR-0 シリーズ、tinyAVR-2 シリーズ、AVR DA/DB シリーズのう�
 [SpenceKonde / DxCore](https://github.com/SpenceKonde/DxCore)
 -- AVR DA,DB,DD series support
 
-- AVR DA/DB
+- AVR DA/DB/DD
 
 `Arduino megaAVR Borads` はボードマネージャーから追加インストールする。\
 その他はそれぞれのサポートサイトの指示に従って、インストールする。
@@ -170,7 +170,9 @@ UPDI4AVR を書き込んでも制御が横取りされるために期待した�
 |         |          |AVR16DD20 |AVR32DD20 |AVR64DD20  |           |VQFN20 SOP20 |
 |         |          |AVR16DD28 |AVR32DD28 |AVR64DD28  |           |DIP28 TSOP28 |
 |         |          |AVR16DD32 |AVR32DD32 |__AVR64DD32__|           |TQFP32 VQFN32|
-
+|AVR EA   |          |          |          |AVR64DD28  |           |VQFN28|
+|         |          |          |          |__AVR64DD32__|           |TQFP32 VQFN32|
+|         |          |          |          |AVR64DD48  |           |TQFP48 VQFN48|
 > 似たような型番だが以下の品種は本表のUPDI系ファミリに該当しない PDI/TPI系の別系統別品種。\
 Attiny102/104 ATtiny828/1628/3228
 
@@ -249,7 +251,7 @@ EEPROM書換などの高度な指示をすることは原則出来ない。
 ## 更新情報
 
 - 2023/04/14版
-  - AVR_EA系統に対応。（UPDI4AVR Firmwareからのバックポート）
+  - AVR_EA系統の書換に対応。（UPDI4AVR Firmwareからのバックポート）
   - ファイル配置変更。
   - `FUSE`書換は以前と同じ値なら何もしないように対応。
 
