@@ -15,7 +15,7 @@ For AVR DA/DB, megaAVR-0, tinyAVR-2 series from using avrdude, Arduino IDE\
 - その専用ハードウェア用に作成された [__UPDI4AVR Firmware__](https://github.com/askn37/multix-zinnia-updi4avr-firmware-builder/)
 
 このブランチの2023/03現在の活動は鈍い。
-AVR_EA対応を含む最新の更新は [__UPDI4AVR Firmware__](https://github.com/askn37/multix-zinnia-updi4avr-firmware-builder/) が先行している。
+最新の更新は [__UPDI4AVR Firmware__](https://github.com/askn37/multix-zinnia-updi4avr-firmware-builder/) が先行している。
 
 ## 特徴
 
