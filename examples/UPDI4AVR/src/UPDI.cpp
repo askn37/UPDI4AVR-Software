@@ -253,6 +253,7 @@ bool UPDI::read_parameter (void) {
     DBG::print("(SIB)", false);
     #endif
 
+    if (!UPDI::set_cs_ctra(UPDI::UPDI_SET_GTVAL_2)) break;
     if (!UPDI::SEND(UPDI::UPDI_SYNCH)) break;
     if (!UPDI::SEND(UPDI::UPDI_SIB_128)) break;
     p = &updi_sib[0];

@@ -59,8 +59,28 @@ namespace JTAG2 {
     , BAUD_1500000
     , BAUD_2000000
     , BAUD_3000000
+
+#if (F_CPU / 2400 < 4096)
     , BAUD_LOWER = BAUD_2400
+#elif (F_CPU / 4800 < 4096)
+    , BAUD_LOWER = BAUD_4800
+#elif (F_CPU / 9600 < 4096)
+    , BAUD_LOWER = BAUD_9600
+#else
+    , BAUD_LOWER = BAUD_19200
+#endif
+
+#if (F_CPU >= 24000000UL)
     , BAUD_UPPER = BAUD_3000000
+#elif (F_CPU >= 16000000UL)
+    , BAUD_UPPER = BAUD_2000000
+#elif (F_CPU >= 12000000UL)
+    , BAUD_UPPER = BAUD_1500000
+#elif (F_CPU >= 8000000UL)
+    , BAUD_UPPER = BAUD_1000000
+#else
+    , BAUD_UPPER = BAUD_115200
+#endif
   };
 
   /* JTAG::CONTROL flags */

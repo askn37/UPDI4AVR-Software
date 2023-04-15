@@ -421,7 +421,7 @@ bool NVM::write_flash (uint32_t start_addr, size_t byte_count) {
   byte_count >>= 1;
   if (byte_count == 0 || byte_count > 256) return false;
 
-  /* この系統ではページ消去を書込と同時に行える */
+  /* This type can use the erase write concurrent command. */
   /* NVMCTRL page buffer clear */
   NVM::nvm_wait();
   if (!NVM::nvm_ctrl(NVM::NVM_CMD_PBC)) return false;
@@ -458,8 +458,8 @@ bool NVM::write_flash_v2 (uint32_t start_addr, size_t byte_count) {
   byte_count >>= 1;
   if (byte_count == 0 || byte_count > 256) return false;
 
-  /* チップ消去していない場合はセクター消去 */
-  /* ただしページ境界先頭がアドレスされた場合に限る */
+  /* Sector erase if not chip erased */
+  /* However, only when the beginning of the page boundary is addressed */
   if (!UPDI::is_control(UPDI::CHIP_ERASE)
   && ((uint16_t)start_addr & (JTAG2::flash_pagesize - 1)) == 0) {
     if (!NVM::nvm_ctrl_v2(NVM::NVM_V2_CMD_FLPER)) return false;
@@ -496,8 +496,8 @@ bool NVM::write_flash_v3 (uint32_t start_addr, size_t byte_count) {
   byte_count >>= 1;
   if (byte_count == 0 || byte_count > 256) return false;
 
-  /* チップ消去していない場合はセクター消去 */
-  /* ただしページ境界先頭がアドレスされた場合に限る */
+  /* Sector erase if not chip erased */
+  /* However, only when the beginning of the page boundary is addressed */
   if (!UPDI::is_control(UPDI::CHIP_ERASE)
   && ((uint16_t)start_addr & (JTAG2::flash_pagesize - 1)) == 0) {
     NVM::nvm_wait_v3();
