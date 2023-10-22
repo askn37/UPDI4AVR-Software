@@ -38,7 +38,10 @@ For AVR DA/DB, megaAVR-0, tinyAVR-2 series from using avrdude, Arduino IDE\
 
 [<img src="https://askn37.github.io/product/UPDI4AVR/2221_Zinnia-UPDI4AVRF-MZU2216B/Zinnia-UPDI4AVRF-MZU2216B_top.svg" width="160">](https://askn37.github.io/product/UPDI4AVR/2221_Zinnia-UPDI4AVRF-MZU2216B/Zinnia-UPDI4AVRF-MZU2216B_top.svg)
 
-[[ハードウェアとしての UPDI4AVR の紹介はこちら]](https://askn37.github.io/product/UPDI4AVR)
+ハードウェアとしての UPDI4AVR の例
+
+- [試作型 MZU2216B](https://askn37.github.io/product/UPDI4AVR/2221_Zinnia-UPDI4AVRF-MZU2216B/) -- このページ用のモデル
+- [現行型 MZU2306B](https://askn37.github.io/product/UPDI4AVR) -- [Firmware Builder](https://github.com/askn37/multix-zinnia-updi4avr-firmware-builder) 対応モデル
 
 ## Arduino IDE への導入
 
@@ -170,9 +173,9 @@ UPDI4AVR を書き込んでも制御が横取りされるために期待した�
 |         |          |AVR16DD20 |AVR32DD20 |AVR64DD20  |           |VQFN20 SOP20 |
 |         |          |AVR16DD28 |AVR32DD28 |AVR64DD28  |           |DIP28 TSOP28 |
 |         |          |AVR16DD32 |AVR32DD32 |__AVR64DD32__|           |TQFP32 VQFN32|
-|AVR EA   |          |          |          |AVR64DD28  |           |VQFN28|
-|         |          |          |          |__AVR64DD32__|           |TQFP32 VQFN32|
-|         |          |          |          |AVR64DD48  |           |TQFP48 VQFN48|
+|AVR EA   |          |AVR16EA28 |AVR32EA28 |AVR64EA28  |           |VQFN28|
+|         |          |AVR16EA32 |AVR32EA32 |__AVR64EA32__|           |TQFP32 VQFN32|
+|         |          |AVR16EA48 |AVR32EA48 |AVR64EA48  |           |TQFP48 VQFN48|
 > 似たような型番だが以下の品種は本表のUPDI系ファミリに該当しない PDI/TPI系の別系統別品種。\
 Attiny102/104 ATtiny828/1628/3228
 
