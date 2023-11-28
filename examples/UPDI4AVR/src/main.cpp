@@ -22,6 +22,7 @@ namespace {
   void loop (void);
   bool process_command (void);
   bool startup;
+  uint16_t before_seqnum;
 }
 
 namespace {
@@ -157,14 +158,16 @@ namespace {
     DBG::print("%");
     DBG::print_dec(JTAG2::packet.number);
     #endif
-    switch (JTAG2::packet.body[0]) {
+    uint8_t message_id = JTAG2::packet.body[0];
+    JTAG2::packet.size_word[0] = 1;
+    JTAG2::packet.body[0] = JTAG2::RSP_OK;
+    switch (message_id) {
       case JTAG2::CMND_SIGN_OFF : {
         ABORT::stop_timer();
         #ifdef DEBUG_USE_USART
         DBG::print(">CMND_SIGN_OFF", false);
         #endif
         JTAG2::sign_off();
-        JTAG2::set_response(JTAG2::RSP_OK);
         break;
       }
       case JTAG2::CMND_GET_SIGN_ON : {
@@ -194,11 +197,9 @@ namespace {
         DBG::print(">SET_DEV", false);
         #endif
         JTAG2::set_device_descriptor();
-        JTAG2::set_response(JTAG2::RSP_OK);
         break;
       }
       case JTAG2::CMND_RESET : {
-        JTAG2::set_response(JTAG2::RSP_OK);
         if (startup) {
           startup = false;
           UPDI::runtime(UPDI::UPDI_CMD_ENTER_PROG);
@@ -218,8 +219,15 @@ namespace {
         #ifdef DEBUG_USE_USART
         DBG::print(">W_MEM", false);
         #endif
-        if (!UPDI::runtime(UPDI::UPDI_CMD_WRITE_MEMORY))
+        /* Received packet error retransmission exception */
+        if (before_seqnum == JTAG2::packet.number) break;
+        if (UPDI::runtime(UPDI::UPDI_CMD_WRITE_MEMORY)) {
+          /* Keep the sequence number if completed successfully */
+          before_seqnum = JTAG2::packet.number;
+        }
+        else {
           JTAG2::set_response(JTAG2::RSP_ILLEGAL_MCU_STATE);
+        }
         break;
       }
       case JTAG2::CMND_XMEGA_ERASE : {
@@ -230,11 +238,16 @@ namespace {
         DBG::print(" SA=", false);
         DBG::print_hex(*((uint32_t*)&JTAG2::packet.body[2]));
         #endif
-        JTAG2::set_response(
-          UPDI::runtime(UPDI::UPDI_CMD_ERASE)
-          ? JTAG2::RSP_OK
-          : JTAG2::RSP_ILLEGAL_MCU_STATE
-        ); break;
+        /* Received packet error retransmission exception */
+        if (before_seqnum == JTAG2::packet.number) break;
+        if (UPDI::runtime(UPDI::UPDI_CMD_ERASE)) {
+          /* Keep the sequence number if completed successfully */
+          before_seqnum = JTAG2::packet.number;
+        }
+        else {
+          JTAG2::set_response(JTAG2::RSP_ILLEGAL_MCU_STATE);
+        }
+        break;
       }
 
       /* no support command, dummy response, all ok */
@@ -243,22 +256,22 @@ namespace {
       case JTAG2::CMND_ENTER_PROGMODE :
       case JTAG2::CMND_LEAVE_PROGMODE : {
         #ifdef DEBUG_USE_USART
-        if (JTAG2::packet.body[0] == JTAG2::CMND_RESET) {
+        if (message_id == JTAG2::CMND_RESET) {
           DBG::print(">RST=", false);
           DBG::write_hex(JTAG2::packet.body[1]);
         }
-        else if (JTAG2::packet.body[0] == JTAG2::CMND_GET_SYNC)       DBG::print(">GET_SYNC", false);
-        else if (JTAG2::packet.body[0] == JTAG2::CMND_GO)             DBG::print(">GO", false);
-        else if (JTAG2::packet.body[0] == JTAG2::CMND_LEAVE_PROGMODE) DBG::print(">L_PRG", false);
+        else if (message_id == JTAG2::CMND_GET_SYNC)       DBG::print(">GET_SYNC", false);
+        else if (message_id == JTAG2::CMND_GO)             DBG::print(">GO", false);
+        else if (message_id == JTAG2::CMND_LEAVE_PROGMODE) DBG::print(">L_PRG", false);
         #endif
-        JTAG2::set_response(JTAG2::RSP_OK); break;
+        break;
       }
 
       /* undefined command ignore, not response */
       default : {
         #ifdef DEBUG_USE_USART
         DBG::print(">!?", false);
-        DBG::write_hex(JTAG2::packet.body[0]);
+        DBG::write_hex(message_id);
         #endif
         return true;
       }

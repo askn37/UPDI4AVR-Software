@@ -103,6 +103,7 @@ namespace NVM {
     , BASE_SIGROW  = 0x1100
   };
 
+  extern uint32_t before_address;
   extern uint16_t flash_pagesize;
   bool read_memory (void);
   bool write_memory (void);

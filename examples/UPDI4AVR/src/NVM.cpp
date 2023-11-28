@@ -39,6 +39,7 @@ namespace NVM {
     , UPDI::UPDI_SYNCH
     , UPDI::UPDI_ST | UPDI::UPDI_PTR_INC | UPDI::UPDI_DATA2
   };
+  uint32_t before_address = -1;
   uint16_t flash_pagesize;
 }
 
@@ -96,15 +97,16 @@ bool NVM::write_memory (void) {
     case JTAG2::MTYPE_BOOT_FLASH :
     case JTAG2::MTYPE_XMEGA_FLASH :
     {
-      if (byte_count != flash_pagesize && byte_count != 256 && byte_count != 64) {
+      if (byte_count != flash_pagesize && byte_count != 256 && byte_count != 64 && byte_count != 2) {
         JTAG2::set_response(JTAG2::RSP_ILLEGAL_MEMORY_RANGE);
         return true;
       }
 
       /* Page boundaries require special handling */
-      bool is_bound = UPDI::is_control(UPDI::CHIP_ERASE)
+      bool is_bound = !UPDI::is_control(UPDI::CHIP_ERASE)
+        && before_address != start_addr
         && ((flash_pagesize - 1) & (uint16_t)start_addr) == 0;
-
+      before_address = start_addr;
       if (UPDI::NVMPROGVER == '0')
         return NVM::write_flash(start_addr, byte_count, is_bound);
       else if (UPDI::NVMPROGVER == '2')
