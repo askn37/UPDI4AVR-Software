@@ -91,7 +91,7 @@ JTAG通信中は点灯するLED制御にも使用できる。
 
 - リセット時に一瞬点灯、ターゲットが見つからなければ（異常があれば）2回以上点滅、以後消灯
 - UPDI通信中は点滅
-- 一連のJTAGセッションが正常終了すれば1回点灯、異常があれば消灯
+- 一連のJTAGセッションが正常終了すれば1回点灯、異常があれば消灯（設定で論理を逆にしなければ）
 
 ### MAKE
 
@@ -115,7 +115,7 @@ UPDI4AVR 自身に対してもリセットを実行する。
 UARTパススルー制御はこのパルス回数を数えることで行われる。
 
 > avrdude は特に設定変更をしなければ、DTRとRTSに同じ信号を出力する。\
-> avrdude 6.8 では、JTAG通信開始時に 1回だけパルスを送信し、その250ms後から通信を開始する。\
+> avrdude 6.8 では、JTAG通信開始時に 1回だけパルスを送信し、その250ms〜350ms後から通信を開始する。\
 10秒後からリトライを開始するが、その時に DTR/RTSパルスは生成されない。\
 > avrdude 7.0 ではリトライの度に新たな DTR/RTS パルスを生成する。（Nano Everyが使いにくい理由）\
 > Arduinoプロトコル使用時は、書込のあいだ DTR/RTS 線を LOW で維持する。
@@ -336,8 +336,10 @@ AVR DDファミリの高電圧プログラミングでは事情が異なり、UP
 
 ### UPDI
 
-- NVMPROG_KEY と ERASE_KEY は一度にまとめて送ってよいようだ。
+- 一部のデバイスでは、NVMPROG_KEY と ERASE_KEY は一度にまとめて送ってよいようだ。
 CS経由のリセット後には消去完了と同時に NVMPROG が有効になる。
+ただしすべてのデバイスがそうであるわけではない。AVR_EAではそれぞれを分けて操作する必要がある。
+- 一部のチップは ERASE_KEY や USERROW_KEY 処理が他より数倍程遅い。他の操作に遷移する前に完全な処理完了を確認しないと、その後の応答が失われる。
 - デバイスリセットをするだけなら CS層にリセットコマンドを UPDI送信するだけかつ受信不要なので、
 米粒AVR/PICで外部リセット回路が作れてしまう。
 そのほうが FUSE 変更で UPDIポートを RESETポート化するより実用的かつ安全。
@@ -354,14 +356,10 @@ CS経由のリセット後には消去完了と同時に NVMPROG が有効にな
   - この点はページ単位消去書込時に不具合となるが、普通は全体消去一括書込をするので発覚しない。
 - 少量アクセス時（ブートローダー書込時）に限って、
 512バイトブロック読出しを要求されることがある。どうして？
-  - この点は最新の *avrdude* では解消されているようだ。
-- DEVICE_DESCRIPTOR からは有用な情報が全く得られない。
-JTAGmkII 用のカスタマイズ設定は何も用意されていないらしい。
-ページサイズなどは WRITE_MEMORY パケットに従えば済むので意味がない。
-HV有効化すべきか否かは本来ここから得られるべきはず。
-（UPDI通信速度もこれで指定できるのが望ましい）
+- DEVICE_DESCRIPTOR からは FLASHページサイズ以外の有用な情報が全く得られない。
+UPDIデバイス用の設定は何も用意されていない。
 - なぜか ENTER_PROG が2回送られてくる。BUGか仕様かは判然としない。
-- タイムアウトでもないのにハンドシェイクを無視して、応答しないうちに次の JTAGパケットが送られてくることがある。
+- タイムアウトでもないのにハンドシェイクを無視して、応答しないうちに次の JTAGパケットが送られてくることがある。これはUSBパケットロストに起因する。他のUSBデバイスを可能な限り取り外し、USBハブも経由せず ホストPCに直結するように変更すると改善することが多い。
 - DEVICE_RESET で 1 以外のパラメータが送られてこない。
 JTAGmkII 通信規約ではパラメータの使い分けがあるはずだが機能していない。
 - FLASH書き込み時に WRITE_MEMORY にエラーを返すと（あるいはタイムアウトすると）
@@ -370,13 +368,14 @@ JTAGmkII 通信規約ではパラメータの使い分けがあるはずだが�
 
 [\<-- 戻る](../README.md)
 
-## 著作表示
+## Copyright and Contact
 
-Twitter: [@askn37](https://twitter.com/askn37) \
+Twitter(X): [@askn37](https://twitter.com/askn37) \
+BlueSky Social: [@multix.jp](https://bsky.app/profile/multix.jp) \
 GitHub: [https://github.com/askn37/](https://github.com/askn37/) \
 Product: [https://askn37.github.io/](https://askn37.github.io/)
 
-Copyright (c) askn (K.Sato) multix.jp \
+Copyright (c) 2023 askn (K.Sato) multix.jp \
 Released under the MIT license \
 [https://opensource.org/licenses/mit-license.php](https://opensource.org/licenses/mit-license.php) \
 [https://www.oshwa.org/](https://www.oshwa.org/)

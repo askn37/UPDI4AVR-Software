@@ -126,7 +126,7 @@
   #define UPDI_TDAT_PIN 2
   #define UPDI_TDAT_PIN_PULLUP
   #define UPDI_TDIR_PIN 0
-  // #define UPDI_TDIR_PIN_INVERT
+  #define UPDI_TDIR_PIN_INVERT
   #define UPDI_TRST_PIN 3
 
   #define JTAG_USART_MODULE USART1

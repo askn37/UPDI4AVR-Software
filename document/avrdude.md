@@ -3,6 +3,8 @@
 2022/05時点の Arduino 1.8.x で使われる *avrdude* は、`version 6.3-20201216`\
 [https://github.com/avrdudes/avrdude/](https://github.com/avrdudes/avrdude/) 公開版は `version 7.0-20220508`
 
+`vsrsion 7.2` 以降は大幅に仕様が変わったため、本文書は一部参考となる。
+
 ## コマンドライン例
 
 UPDI4AVRを介してターゲットMCUと UPDI通信を行うには、以下の構文が最低限必要となる。
@@ -28,6 +30,7 @@ avrdude: Can't find programmer id "jtag2updi"
 この場合には以下の設定を *avrdude.conf* のどこかに挿入する。
 
 ```conf
+# avrdude 6.3
 programmer
   id    = "jtag2updi";
   desc  = "JTAGv2 to UPDI bridge";
@@ -126,11 +129,11 @@ avrdude: Yikes!  Invalid device signature.
 
 これには以下の理由がある；
 
-1. UPDI通信許可手順に失敗した。そもそも配線が繋がっていなかったり電気的特性に問題がある。
-1. UPDI通信許可手順は正しいが、ターゲットに無視された。
-1. UPDI通信許可手順は成功したが、プログラミング操作遷移が拒否された。
+1. UPDI通信許可手順に失敗した。電気的特性に問題がある。
+2. UPDI通信許可手順は正しいが、そもそも配線が繋がっていなかったりターゲットに無視された。
+3. UPDI通信許可手順は成功したが、プログラミング操作遷移が拒否された。
 
-(1)の場合、UPDI4AVR では `signature = 0x010101` を返す。
+(1)の場合、UPDI4AVR では `signature = 0x000000` を返す。
 これは正しいデータが送信できなかったか、受信データが正しくない（文字化けした）ことを示す。
 多くの場合配線に問題があるだろう。
 ターゲットの UPDI が無効でかつ GPIO に使われ、LOW を出力しつづけている場合もこれになる。
@@ -139,14 +142,16 @@ avrdude: Yikes!  Invalid device signature.
 これは正しいデータは送信できたが、ターゲットが応答しなかったことを示す。
 多くの場合これは高電圧プログラミングが必要な状態だろう。
 
-(3)の場合、UPDI4AVR では `signature = 0x000000` を返す。
+(3)の場合、UPDI4AVR では __擬似署名__ を返す。
 これは正しいデータが送信でき、ターゲットも応答したが、メモリを読めなかった。
 多くの場合これはデバイス施錠が行われていることを示す。
-できることはチップ消去とデバイスリセットだけである。
+できることはチップ消去と USERROW 書き込みだけである。
+
+> 擬似署名は 0x1e と 2文字の識別コードからなる。これは System Informarion Block の要約で、デバイスファミリー＋NVM制御器バージョン番号からなる。
 
 ## 高電圧印加 FUSE 書換
 
-(2)の場合、高電圧プログラミングには追加のハードウェア回路が必要となる。
+先の(2)のケースの場合、高電圧プログラミングには追加のハードウェア回路が必要となる。
 もしそれが手元にあるならば、正しく初期状態に復元すべき `-U fuse:w` 設定と、
 `-e` および `-F` オプションを列挙することで復元できる。
 
@@ -171,7 +176,7 @@ avrdude -C avrdude.conf \
 `-e` `-U` `-F` の三つ組はセットで記述すべきである。
 UPDI4AVRは、`-F` で強制実行が指定され、かつ `-e` でチップ消去が指示され、
 なおかつ通常の UPDI開始手順失敗を検出した場合に、高電圧印加を試行する。\
-（このとき `HVEN` ピン出力が約 1~2ms の間 HIGH にトリガーされる）\
+（このとき `HVEN` ピン出力が最大 1ms の間 HIGH にトリガーされる）\
 成功すれば、以後は通常の UPDI通信が可能な状態（高電圧印加を必要としない）に復旧している。
 
 - 厳密な高電圧プログラミングにおいてチップ消去は必須ではないが、
@@ -344,91 +349,28 @@ static struct {
 
 UPDI4AVR は、この新しい定義設定に対応している。
 
-[Appendix](../Appendix) に添付の *avrdude.conf* には以下の記述が追加されている。
-
-- baudrate 値は、`-b`オプションで変更できる。
-ただし指定可能なのは前述の対応数値のみ。
-programmer定義に書かれた速度は `-b`省略時の既定値である。
-- 最高速度と最低速度はホスト側の主クロックに依存する。
-
-```conf
-# UPDI4AVR
-# https://github.com/askn37/UPDI4AVR
-
-programmer
-  id    = "updi4avr";
-  desc  = "JTAGv2 to UPDI bridge";
-  type  = "jtagmkii_pdi";
-  connection_type = serial;
-  baudrate = 921600;
-;
-```
-
-*avrdude 7.0* を用意してこの *avrdude.conf* を指定すれば
-ここまで記述してきたコマンドラインを、以下のように変えることができる。
-
-```sh
-# 921.6K bps 接続（8倍速）
-avrdude -C avrdude.conf -c updi4avr -P /dev/cu.usbserial-1420 -p atmega4808
-```
-
-```pre
-avrdude: serial_baud_lookup(): Using non-standard baud rate: 921600
-```
-
-この設定で AVR128DB32 に対して FLASH領域 128KB を読み書きすると以下の速度が達成できる。
-
-```sh
-# ddコマンドで 128KB の 0x00 充填ファイルを作る
-$ dd if=/dev/zero of=128kb.raw count=128 bs=1024
-128+0 records in
-128+0 records out
-131072 bytes transferred in 0.000848 secs (154556034 bytes/sec)
-
-# これを指定して書き込み、ベリファイする
-$ avrdude -C avrdude.conf -p avr128db32 -c updi4avr \
- -P /dev/cu.usbserial-1420 -e -U flash:w:128kb.raw:r
-```
-
-```pre
-avrdude: AVR device initialized and ready to accept instructions
-
-Reading | ################################################## | 100% 0.12s
-
-avrdude: Device signature = 0x1e970d (probably avr128db32)
-avrdude: erasing chip
-avrdude: reading input file "128kb.raw"
-avrdude: writing flash (131072 bytes):
-
-Writing | ################################################## | 100% 27.38s
-
-avrdude: 131072 bytes of flash written
-avrdude: verifying flash memory against 128kb.raw:
-
-Reading | ################################################## | 100% 21.11s
-
-avrdude: 131072 bytes of flash verified
-
-avrdude done.  Thank you.
-```
-
-なお実用上の最高/最低速度はホスト側の主クロックに依存しており、
+実用上の最高/最低速度はホスト側のUSBドライバに依存しており、
 限度を超えると以下の警告が出てリトライが多発し正常に動作しなくなる。
-2M bps 以上と 9600 bps 未満はおおくの場合正しく利用できない。
+1M bps 以上と 9600 bps 未満はおおくの場合正しく利用できない。
+安全な設定値はおそらく`-b 500000`が最大だろう。
+（この値はデバイス動作クロックをちょうど割り切れるため通信誤差が少ない）
 
 ```pre
 avrdude: jtagmkII_paged_load(): timeout/error communicating with programmer (status -1)
 ```
 
+> 1Mbps以上でUSB-シリアル変換通信をする場合は、パケットサイズが概ね200バイト程度以下でないとUSBパケットロストが多発して安定しなくなる。しかしNVM操作で要求されるパケットサイズはこれを超えてしまうので、シリアルコンソールに比べて上限速度が制約されてしまう。どうしても必要な場合は`readsize`設定を小さくすることで一応回避可能だ。
+
 [\<-- 戻る](../README.md)
 
-## 著作表示
+## Copyright and Contact
 
-Twitter: [@askn37](https://twitter.com/askn37) \
+Twitter(X): [@askn37](https://twitter.com/askn37) \
+BlueSky Social: [@multix.jp](https://bsky.app/profile/multix.jp) \
 GitHub: [https://github.com/askn37/](https://github.com/askn37/) \
 Product: [https://askn37.github.io/](https://askn37.github.io/)
 
-Copyright (c) askn (K.Sato) multix.jp \
+Copyright (c) 2023 askn (K.Sato) multix.jp \
 Released under the MIT license \
 [https://opensource.org/licenses/mit-license.php](https://opensource.org/licenses/mit-license.php) \
 [https://www.oshwa.org/](https://www.oshwa.org/)

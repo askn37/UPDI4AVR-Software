@@ -58,6 +58,7 @@ namespace UPDI {
     , UPDI_KEY_128 = 0xE1
     , UPDI_SIB_64  = 0xE4
     , UPDI_SIB_128 = 0xE5
+    , UPDI_SIB_256 = 0xE6
     /* ADDR size */
     , UPDI_ADDR1   = 0x00
     , UPDI_ADDR2   = 0x04
@@ -85,7 +86,7 @@ namespace UPDI {
   enum updi_status_e {
       UPDI_KEY_UROWWRITE  = 0x20  // ASI_KEY_STATUS
     , UPDI_KEY_NVMPROG    = 0x10
-    , UPSI_KEY_CHIPERASE  = 0x08
+    , UPDI_KEY_CHIPERASE  = 0x08
     , UPDI_SYS_RSTSYS     = 0x20
     , UPDI_SYS_INSLEEP    = 0x10
     , UPDI_SYS_NVMPROG    = 0x08
@@ -118,6 +119,8 @@ namespace UPDI {
     , UPDI_SET_UROWWRITE_FINAL = 0x02 // ASI_SYS_CTRLA
     , UPDI_SET_CLKREQ          = 0x01
   };
+
+  extern uint8_t signature[4];
 
   inline void tdir_push (void) {
     #if defined(UPDI_TDIR_PIN_INVERT)
@@ -177,12 +180,11 @@ inline bool set_cs_ctra (const uint8_t data) {
   return set_cs_stat(UPDI_CS_CTRLA, data);
 }
   bool read_parameter (void);
-  bool check_sig (void);
-  void hv_pulse (void);
   bool chip_erase (void);
   bool enter_nvmprog (void);
   bool enter_updi (void);
   bool leave_updi (void);
+  bool write_userrow(uint32_t start_addr, size_t byte_count);
 
   bool runtime (uint8_t updi_cmnd);
 }

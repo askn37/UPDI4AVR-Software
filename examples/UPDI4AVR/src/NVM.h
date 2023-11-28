@@ -102,22 +102,12 @@ namespace NVM {
     , BASE_FUSE    = 0x1050
     , BASE_SIGROW  = 0x1100
   };
-  // bool read_memory (void);
-  // bool write_memory (void);
 
-  // uint8_t nvm_wait (void);
-  // bool nvm_ctrl (uint8_t nvmcmd);
-  // bool nvm_ctrl_v2 (uint8_t nvmcmd);
-
-  // bool write_fuse(uint16_t addr, uint8_t data);
-  // bool write_fuse_v2(uint16_t addr, uint8_t data);
-  // // bool read_flash (uint32_t start_addr, uint8_t *data, size_t byte_count);
-  // bool write_flash (uint32_t start_addr, uint8_t *data, size_t byte_count);
-  // // bool read_data_memory (uint32_t start_addr, uint8_t *data, size_t byte_count);
-  // bool write_eeprom (uint32_t start_addr, uint8_t *data, size_t byte_count);
-
+  extern uint16_t flash_pagesize;
   bool read_memory (void);
   bool write_memory (void);
+  bool write_data (uint32_t start_addr, size_t byte_count);
+  bool write_data_word (uint32_t start_addr, size_t byte_count);
 
   bool read_data (uint32_t start_addr, size_t byte_count);
   bool read_flash (uint32_t start_addr, size_t byte_count);
@@ -126,18 +116,16 @@ namespace NVM {
   bool nvm_ctrl (uint8_t nvmcmd);
   bool write_fuse (uint16_t addr, uint8_t data);
   bool write_eeprom (uint32_t start_addr, size_t byte_count);
-  bool write_flash (uint32_t start_addr, size_t byte_count);
+  bool write_flash (uint32_t start_addr, size_t byte_count, bool is_bound);
 
   bool nvm_ctrl_v2 (uint8_t nvmcmd);
-  bool write_fuse_v2 (uint16_t addr, uint8_t data);
   bool write_eeprom_v2 (uint32_t start_addr, size_t byte_count);
-  bool write_flash_v2 (uint32_t start_addr, size_t byte_count);
+  bool write_flash_v2 (uint32_t start_addr, size_t byte_count, bool is_bound);
 
   uint8_t nvm_wait_v3 (void);
   bool nvm_ctrl_v3 (uint8_t nvmcmd);
-  bool write_fuse_v3 (uint16_t addr, uint8_t data);
   bool write_eeprom_v3 (uint32_t start_addr, size_t byte_count);
-  bool write_flash_v3 (uint32_t start_addr, size_t byte_count);
+  bool write_flash_v3 (uint32_t start_addr, size_t byte_count, bool is_bound);
 }
 
 // end of code

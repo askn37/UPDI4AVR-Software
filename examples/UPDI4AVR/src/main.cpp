@@ -1,11 +1,11 @@
 /**
- * @file UPDI4AVR.cpp
+ * @file main.cpp
  * @author askn (K.Sato) multix.jp
  * @brief
- * @version 0.1
- * @date 2022-12-12
+ * @version 0.3
+ * @date 2023-11-28
  *
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2023 askn37 at github.com
  *
  */
 #include "../configuration.h"
@@ -21,6 +21,7 @@ namespace {
   void setup (void);
   void loop (void);
   bool process_command (void);
+  bool startup;
 }
 
 namespace {
@@ -43,45 +44,7 @@ namespace {
     JTAG2::setup();
     ABORT::stop_timer();
 
-    // #define DEBUG_PWM
-    #if defined(DEBUG_PWM)
-    SYS::pgen_enable();
-    SYS::hvp_enable();
-    if (setjmp(ABORT::CONTEXT) == 0) {
-      ABORT::set_make_interrupt(ABORT::CONTEXT);
-      while (1) {
-        TIMER::delay(2000);
-        SYS::hven_disable();
-        TIMER::delay(2000);
-        SYS::hven_enable();
-        #ifdef DEBUG_USE_USART
-        DBG::newline();
-        DBG::print_dec(TIMER::millis());
-        #endif
-      }
-    }
-    else {
-      SYS::pgen_disable();
-      _PROTECTED_WRITE(RSTCTRL.SWRR,
-        #if defined(RSTCTRL_SWRE_bm)
-        RSTCTRL_SWRE_bm
-        #elif defined(RSTCTRL_SWRST_bm)
-        RSTCTRL_SWRST_bm
-        #else
-        #assert "This RSTCTRL defined is not supported"
-        #endif
-      );
-    }
-    #endif
-
     SYS::trst_enable();
-    for (uint8_t i = 0; i < 2; i++) {
-      SYS::pgen_enable();
-      TIMER::delay(100);
-      SYS::pgen_disable();
-      TIMER::delay(100);
-    }
-
     UPDI::runtime(UPDI::UPDI_CMD_TARGET_RESET);
     SYS::pgen_disable();
   }
@@ -208,6 +171,7 @@ namespace {
         #ifdef DEBUG_USE_USART
         DBG::print(">GET_SIGN_ON", false);
         #endif
+        startup = true;
         if (!JTAG2::sign_on()) {
           ABORT::stop_timer();
         }
@@ -229,23 +193,22 @@ namespace {
         #ifdef DEBUG_USE_USART
         DBG::print(">SET_DEV", false);
         #endif
-        JTAG2::set_device_descriptor(); break;
+        JTAG2::set_device_descriptor();
+        JTAG2::set_response(JTAG2::RSP_OK);
+        break;
       }
-      case JTAG2::CMND_ENTER_PROGMODE : {
-        #ifdef DEBUG_USE_USART
-        DBG::print(">E_PRG", false);
-        #endif
-        JTAG2::set_response(
-          UPDI::runtime(UPDI::UPDI_CMD_ENTER_PROG)
-          ? JTAG2::RSP_OK
-          : JTAG2::RSP_ILLEGAL_MCU_STATE
-        ); break;
+      case JTAG2::CMND_RESET : {
+        JTAG2::set_response(JTAG2::RSP_OK);
+        if (startup) {
+          startup = false;
+          UPDI::runtime(UPDI::UPDI_CMD_ENTER_PROG);
+        }
+        break;
       }
       case JTAG2::CMND_READ_MEMORY : {
         #ifdef DEBUG_USE_USART
         DBG::print(">R_MEM", false);
         #endif
-        if (UPDI::check_sig()) break;
         if (!UPDI::runtime(UPDI::UPDI_CMD_READ_MEMORY)) {
           JTAG2::set_response(JTAG2::RSP_ILLEGAL_MCU_STATE);
         }
@@ -255,11 +218,9 @@ namespace {
         #ifdef DEBUG_USE_USART
         DBG::print(">W_MEM", false);
         #endif
-        JTAG2::set_response(
-          UPDI::runtime(UPDI::UPDI_CMD_WRITE_MEMORY)
-          ? JTAG2::RSP_OK
-          : JTAG2::RSP_ILLEGAL_MEMORY_TYPE
-        ); break;
+        if (!UPDI::runtime(UPDI::UPDI_CMD_WRITE_MEMORY))
+          JTAG2::set_response(JTAG2::RSP_ILLEGAL_MCU_STATE);
+        break;
       }
       case JTAG2::CMND_XMEGA_ERASE : {
         #ifdef DEBUG_USE_USART
@@ -278,8 +239,8 @@ namespace {
 
       /* no support command, dummy response, all ok */
       case JTAG2::CMND_GET_SYNC :
-      case JTAG2::CMND_RESET :
       case JTAG2::CMND_GO :
+      case JTAG2::CMND_ENTER_PROGMODE :
       case JTAG2::CMND_LEAVE_PROGMODE : {
         #ifdef DEBUG_USE_USART
         if (JTAG2::packet.body[0] == JTAG2::CMND_RESET) {

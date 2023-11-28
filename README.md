@@ -14,13 +14,12 @@ For AVR DA/DB, megaAVR-0, tinyAVR-2 series from using avrdude, Arduino IDE\
 - 専用HV制御回路を含むオープンソースハードウェアとして設計された [__UPDI4AVR Programmer__](https://askn37.github.io/product/UPDI4AVR/)
 - その専用ハードウェア用に作成された [__UPDI4AVR Firmware__](https://github.com/askn37/multix-zinnia-updi4avr-firmware-builder/)
 
-このブランチの2023/03現在の活動は鈍い。
 最新の更新は [__UPDI4AVR Firmware__](https://github.com/askn37/multix-zinnia-updi4avr-firmware-builder/) が先行している。
 
 ## 特徴
 
 - UPDI対応 AVR のための、プログラミングホストファームウェア
-  - megaAVR-0系列、tinyAVR-2系列、AVR DA/DB/DD/EA系列用
+  - megaAVR-0系列、tinyAVR-2系列、AVR DA/DB/DD/EA/EB系列用
   - ホスト側、ターゲット側の双方を同系列の UPDI対応デバイスで統一できる
 - Arduino IDE および avrdude コマンドラインから使用可能
   - JTAGmkIIプロトコル準拠（JTAG2UPDI 互換）
@@ -34,7 +33,7 @@ For AVR DA/DB, megaAVR-0, tinyAVR-2 series from using avrdude, Arduino IDE\
 - UARTパススルー対応
   - ライタとして動作しない間はターゲットの UARTが PCと繋げられる
 
-### UPDI4AVR hardware
+### UPDI4AVR Hardware
 
 [<img src="https://askn37.github.io/product/UPDI4AVR/2221_Zinnia-UPDI4AVRF-MZU2216B/Zinnia-UPDI4AVRF-MZU2216B_top.svg" width="160">](https://askn37.github.io/product/UPDI4AVR/2221_Zinnia-UPDI4AVRF-MZU2216B/Zinnia-UPDI4AVRF-MZU2216B_top.svg)
 
@@ -42,6 +41,14 @@ For AVR DA/DB, megaAVR-0, tinyAVR-2 series from using avrdude, Arduino IDE\
 
 - [試作型 MZU2216B](https://askn37.github.io/product/UPDI4AVR/2221_Zinnia-UPDI4AVRF-MZU2216B/) -- このページ用のモデル
 - [現行型 MZU2306B](https://askn37.github.io/product/UPDI4AVR) -- [Firmware Builder](https://github.com/askn37/multix-zinnia-updi4avr-firmware-builder) 対応モデル
+
+### UPDI4AVR Firmware との相違点
+
+- タイマー周辺機能の使い方が大幅に異なる。WatchDogTimer は使われていない。
+- 汎用的かつ多種のインストール先デバイスに対応するためコードの最適化がされていない。
+- RTS/DTR信号はパルス検出のみ行う。即応性が低いため、操作開始時の待機時間が長くなることがある。
+- 外部高電圧制御ピンが1本だけのため、対象デバイス毎に異なる制御電圧や、印加対象ピンの自動切り替えに対応していない。
+  - 従って tinyAVR と AVR_DD/EA/EB それぞれの対応グループ切り替えは、外部ジャンパーピンに依存する。
 
 ## Arduino IDE への導入
 
@@ -64,7 +71,7 @@ For AVR DA/DB, megaAVR-0, tinyAVR-2 series from using avrdude, Arduino IDE\
 
 このファームウェアは次の要件を満たす AVR にアップロード（インストール）できる。
 
-megaAVR-0 シリーズ、tinyAVR-2 シリーズ、AVR DA/DB シリーズのうち、
+megaAVR-0 シリーズ、tinyAVR-2 シリーズ、AVR DA/DB/DD シリーズのうち、
 
 - 8KB 以上の FLASH 領域
 - 1KB 以上の SRAM 容量
@@ -73,6 +80,7 @@ megaAVR-0 シリーズ、tinyAVR-2 シリーズ、AVR DA/DB シリーズのう�
 を有していること。
 
 > __リファレンス AVR は ATtiny824 とその上位品種である。__
+周辺機能が不足するため tinyAVR-0/1と AVR_EA/EBには対応していない。
 
 その他にこのファームウェアは 以下の製品でインストールできる。
 
@@ -86,7 +94,7 @@ megaAVR-0 シリーズ、tinyAVR-2 シリーズ、AVR DA/DB シリーズのう�
 
 > デフォルトSDK。HV書込対応。
 
-- megaAVR-0 / tinyAVR-2 / AVR DA/DB/DD/EA
+- megaAVR-0 / tinyAVR-2 / AVR DA/DB/DD/EA/EB
 - Microchip Curiosity Nano ATmega4809 (DM320115)
 - Microchip Curiosity Nano ATtiny1627 (DM080104)
 - Microchip Curiosity Nano AVR128DA48 (DM164151)
@@ -107,7 +115,7 @@ megaAVR-0 シリーズ、tinyAVR-2 シリーズ、AVR DA/DB シリーズのう�
 [SpenceKonde / DxCore](https://github.com/SpenceKonde/DxCore)
 -- AVR DA,DB,DD series support
 
-- AVR DA/DB/DD
+- AVR DA/DB/DD/EA
 
 `Arduino megaAVR Borads` はボードマネージャーから追加インストールする。\
 その他はそれぞれのサポートサイトの指示に従って、インストールする。
@@ -176,6 +184,12 @@ UPDI4AVR を書き込んでも制御が横取りされるために期待した�
 |AVR EA   |          |AVR16EA28 |AVR32EA28 |AVR64EA28  |           |VQFN28|
 |         |          |AVR16EA32 |AVR32EA32 |__AVR64EA32__|           |TQFP32 VQFN32|
 |         |          |AVR16EA48 |AVR32EA48 |AVR64EA48  |           |TQFP48 VQFN48|
+|AVR EB   |          |*AVR16EB14*|*AVR32EB14*|           |           |TSOP14|
+|         |          |*AVR16EB20*|*AVR32EB20*|           |           |VQFN20|
+|         |          |*AVR16EB28*|*AVR32EB28*|           |           |VQFN28|
+|         |          |*AVR16EB32*|*AVR32EB32*|           |           |TQFP32 VQFN32|
+|         |          |*AVR16EB48*|*AVR32EB48*|           |           |TQFP48 VQFN48|
+
 > 似たような型番だが以下の品種は本表のUPDI系ファミリに該当しない PDI/TPI系の別系統別品種。\
 Attiny102/104 ATtiny828/1628/3228
 
@@ -233,6 +247,11 @@ EEPROM書換などの高度な指示をすることは原則出来ない。
 - デバッガインタフェースとしては機能しない。特殊領域書換とチップ消去にのみ対応。
   - UPDIオンボードデバッグ制御プロトコルは非公開のプロプライエタリ。
 - 高電圧プログラミングには、追加のハードウェア支援が絶対に必要。（必然的に）
+- 最高通信速度（USB-シリアル変換速度）は、対象デバイスグループによって大きく異なる。
+  - tinyAVR / megaAVR は 1Mbps以上でも問題ないことが多い。（Xeon-MPだと 2Mbpsが使えることもある）
+  - AVR_DA/DB/DD は 1Mbpsでのリードで USBパケットロストエラーが観測される。（見かけはタイムアウトと区別できない）
+    - `readsize=128`に減らすと改善するケースがあるので、ホストPC側 USBドライバーのチューニング依存と思われる。
+  - AVR_EA は 500kbps でも稀に タイムアウトエラーが観測される。
 
 ## うまく動かない場合
 
@@ -247,14 +266,21 @@ EEPROM書換などの高度な指示をすることは原則出来ない。
   - 電源供給はホスト側かターゲット側のどちらか一方からのみ供給する（電圧を揃える）
   - ファームウェアを書く時、FUSEを書く時は ターゲットの UART線は外す
     - UARTパススルーを併用しない（ターゲットがGPIOを使っているとJTAG通信を妨害する）
-  - なるべく短い線材を使う
+  - なるべく短い配線材を使う
 - 復旧に高電圧プログラミングが必要になる FUSE設定を安易に試さない
   - そういう FUSE をくれぐれも間違って書かない
 
 ## 更新情報
 
+- 2023/11/28 (FW606A)
+  - __UPDI4AVR Firmware__ (FW634B)からの技術的バックポートで AVR_EB対応準拠に更新。
+    - 施錠されたデバイスの場合、擬似署名を返却する。
+    - 施錠デバイスへの盲目的 USERROW 書き込み対応と、チップ消去操作の改善。
+    - `AVRDUDE 7.3`に仕様に準拠。
+    - `AVRDUDE`の`-D`オプションによる、部分メモリブロック書き込みに対応。
+
 - 2023/05/09
-  - 添付 *avrdude.conf* での規定速度を`460800`に制限。
+  - 添付 *avrdude.conf* での規定速度を ~~`460800`~~ `230400` に制限。
     - 古いCH3xx用ドライバにて使用不可のため。（現行最新では問題ない）
 
 - 2023/04/14
@@ -284,13 +310,14 @@ EEPROM書換などの高度な指示をすることは原則出来ない。
 - [avrdude操作例](document/avrdude.md)
 - [詳細な使い方・高電圧プログラミング](document/advanced.md)
 
-## 著作表示
+## Copyright and Contact
 
-Twitter: [@askn37](https://twitter.com/askn37) \
+Twitter(X): [@askn37](https://twitter.com/askn37) \
+BlueSky Social: [@multix.jp](https://bsky.app/profile/multix.jp) \
 GitHub: [https://github.com/askn37/](https://github.com/askn37/) \
 Product: [https://askn37.github.io/](https://askn37.github.io/)
 
-Copyright (c) askn (K.Sato) multix.jp \
+Copyright (c) 2023 askn (K.Sato) multix.jp \
 Released under the MIT license \
 [https://opensource.org/licenses/mit-license.php](https://opensource.org/licenses/mit-license.php) \
 [https://www.oshwa.org/](https://www.oshwa.org/)

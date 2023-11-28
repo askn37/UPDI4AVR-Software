@@ -2,10 +2,10 @@
  * @file UPDI.cpp
  * @author askn (K.Sato) multix.jp
  * @brief
- * @version 0.2
- * @date 2023-04-14
+ * @version 0.3
+ * @date 2023-11-28
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023 askn37 at github.com
  *
  */
 #include <setjmp.h>
@@ -19,16 +19,15 @@
 #include "dbg.h"
 
 namespace UPDI {
-  const static uint8_t nvmprog_key[10] = { UPDI::UPDI_SYNCH, UPDI::UPDI_KEY_64, 0x20, 0x67, 0x6F, 0x72, 0x50, 0x4D, 0x56, 0x4E };
-  const static uint8_t erase_key[10]   = { UPDI::UPDI_SYNCH, UPDI::UPDI_KEY_64, 0x65, 0x73, 0x61, 0x72, 0x45, 0x4D, 0x56, 0x4E };
-
-  /* unused keys */
-  // const static uint8_t urowwrite_key[10] = { UPDI::UPDI_SYNCH, UPDI::UPDI_KEY_64, 0x65, 0x74, 0x26, 0x73, 0x55, 0x4D, 0x56, 0x4E };
+  const static uint8_t nvmprog_key[10]   = { UPDI::UPDI_SYNCH, UPDI::UPDI_KEY_64, 0x20, 0x67, 0x6F, 0x72, 0x50, 0x4D, 0x56, 0x4E };
+  const static uint8_t erase_key[10]     = { UPDI::UPDI_SYNCH, UPDI::UPDI_KEY_64, 0x65, 0x73, 0x61, 0x72, 0x45, 0x4D, 0x56, 0x4E };
+  const static uint8_t urowwrite_key[10] = { UPDI::UPDI_SYNCH, UPDI::UPDI_KEY_64, 0x65, 0x74, 0x26, 0x73, 0x55, 0x4D, 0x56, 0x4E };
 
   volatile uint8_t LASTL; // Last read byte
   volatile uint8_t LASTH; // Last read status
   uint8_t NVMPROGVER;
   uint8_t CONTROL;
+  uint8_t signature[4];
 }
 
 void UPDI::setup (void) {
@@ -245,30 +244,33 @@ bool UPDI::set_cs_stat (const uint8_t code, const uint8_t data) {
 /* inline bool reset (bool logic);  // UPDI_CS_ASI_RESET_REQ, UPDI_RSTREQ */
 
 bool UPDI::read_parameter (void) {
-  uint8_t updi_sib[16];
+  uint8_t updi_sib[32];
   uint8_t *p;
   size_t len;
   for (;;) {
     #ifdef DEBUG_USE_USART
     DBG::print("(SIB)", false);
     #endif
-
+    *(uint32_t*)&signature[0] = 0;
     if (!UPDI::set_cs_ctra(UPDI::UPDI_SET_GTVAL_2)) break;
     if (!UPDI::SEND(UPDI::UPDI_SYNCH)) break;
-    if (!UPDI::SEND(UPDI::UPDI_SIB_128)) break;
+    if (!UPDI::SEND(UPDI::UPDI_SIB_256)) break;
+    *(uint32_t*)&signature[0] = -1;
     p = &updi_sib[0];
     len = sizeof(updi_sib);
     while (len--) *p++ = UPDI::RECV();
-
-    /* UPDI connection success */
-
-    UPDI::set_control(UPDI::UPDI_ACTIVE);
-    UPDI::NVMPROGVER = updi_sib[10];
-    #ifdef DEBUG_USE_USART
-    DBG::print("[SIB]"); DBG::write(&updi_sib[0], 8, false);
-    DBG::print("[NVM]"); DBG::write(&updi_sib[8], 8, false);
-    DBG::print(" PV=", false); DBG::write(UPDI::NVMPROGVER);
-    #endif
+    if (updi_sib[9] == ':') {
+      /* UPDI connection success */
+      signature[0] = 0x1E;
+      signature[1] = updi_sib[0] == ' ' ? updi_sib[4] : updi_sib[0];
+      signature[2] = updi_sib[10];
+      UPDI::NVMPROGVER = updi_sib[10];
+      UPDI::set_control(UPDI::UPDI_ACTIVE);
+      #ifdef DEBUG_USE_USART
+      DBG::print("[SIB]"); DBG::write(&updi_sib[0], 32, false);
+      DBG::print(" PV=", false); DBG::write(UPDI::NVMPROGVER);
+      #endif
+    }
     return true;
   }
   #ifdef DEBUG_USE_USART
@@ -277,41 +279,13 @@ bool UPDI::read_parameter (void) {
   return false;
 }
 
-bool UPDI::check_sig (void) {
-  uint8_t  mem_type   = JTAG2::packet.body[1];
-  uint32_t byte_count = *((uint32_t*)&JTAG2::packet.body[2]);
-  uint32_t start_addr = *((uint32_t*)&JTAG2::packet.body[6]);
-  if (!UPDI::is_control(UPDI::ENABLE_NVMPG)
-    && mem_type == JTAG2::MTYPE_SIGN_JTAG
-    && byte_count == 1
-    && start_addr >= NVM::BASE_SIGROW && start_addr <= (NVM::BASE_SIGROW + 2)) {
-    JTAG2::packet.body[0] = JTAG2::RSP_MEMORY;
-    JTAG2::packet.body[1] = UPDI::NVMPROGVER == 0 ? (UPDI::LASTH ? 0x01 : 0xFF) : 0x00;
-    JTAG2::packet.size = 2;
-    #ifdef DEBUG_USE_USART
-    DBG::print(" MT=", false); DBG::write_hex(mem_type);
-    DBG::print(" BC=", false); DBG::print_dec(byte_count);
-    DBG::print(" SA=", false); DBG::print_hex(start_addr);
-    DBG::write(',');
-    DBG::hexlist(&JTAG2::packet.body[1], 1);
-    #endif
-    return true;
-  }
-  return false;
-}
-
 bool UPDI::chip_erase (void) {
+  uint16_t limit;
   for (;;) {
     /* Using HV mode before */
     if (!UPDI::is_control(UPDI::UPDI_ACTIVE | UPDI::ENABLE_NVMPG)) {
       UPDI::BREAK(false, true);
     }
-
-    /* send nvmprog_key */
-    if (UPDI::send_bytes(UPDI::nvmprog_key, sizeof(UPDI::nvmprog_key)) != sizeof(UPDI::nvmprog_key)) break;
-    #ifdef DEBUG_USE_USART
-    DBG::print("(NVMKEY)", false);
-    #endif
 
     /* send erase_key */
     if (UPDI::send_bytes(UPDI::erase_key, sizeof(UPDI::erase_key)) != sizeof(UPDI::erase_key)) break;
@@ -321,28 +295,69 @@ bool UPDI::chip_erase (void) {
     #endif
 
     /* restart target : change mode */
-    if (!(UPDI::reset(true) && UPDI::reset(false))) break;
+    if (!UPDI::reset(true) || !UPDI::reset(false)) break;
 
-    #ifdef DEBUG_USE_USART
-    DBG::print("(RST)", false);
-    #endif
+    limit = 200;
+    do {
+      TIMER::delay_us(50);
+      #ifdef DEBUG_USE_USART
+      DBG::print("(RST)", false);
+      #endif
+    } while (--limit && UPDI::is_sys_stat(UPDI::UPDI_SYS_RSTSYS));
 
-    /* wait enable : chip erase mode success */
-    TIMER::delay(50);
+    limit = 200;
+    do {
+      TIMER::delay_us(50);
+      #ifdef DEBUG_USE_USART
+      DBG::print("(LOCK)", false);
+      #endif
+    } while (--limit && UPDI::is_sys_stat(UPDI::UPDI_SYS_LOCKSTATUS));
 
-    if (!UPDI::is_control(UPDI::UPDI_ACTIVE | UPDI::ENABLE_NVMPG)) {
-      if (!UPDI::enter_updi()) break;
-    }
+    limit = 1000;
+    do {
+      TIMER::delay_us(50);
+      #ifdef DEBUG_USE_USART
+      DBG::print("(KEY)", false);
+      #endif
+    } while (--limit && UPDI::is_key_stat(UPDI::UPDI_KEY_CHIPERASE));
+    UPDI::set_control(UPDI::CHIP_ERASE | UPDI::UPDI_ACTIVE);
+    JTAG2::clear_control(JTAG2::ANS_FAILED);
 
-    while (UPDI::is_sys_stat(UPDI::UPDI_SYS_LOCKSTATUS));
     #ifdef DEBUG_USE_USART
     DBG::print("[ERASED]", false);
     #endif
 
-    UPDI::set_control(UPDI::CHIP_ERASE);
-    JTAG2::clear_control(JTAG2::ANS_FAILED);
+    /* send nvmprog_key */
+    if (UPDI::send_bytes(UPDI::nvmprog_key, sizeof(UPDI::nvmprog_key)) != sizeof(UPDI::nvmprog_key)) break;
+    #ifdef DEBUG_USE_USART
+    DBG::print("(NVMKEY)", false);
+    #endif
 
-    return UPDI::enter_nvmprog();
+    /* restart target : change mode */
+    if (!UPDI::reset(true) || !UPDI::reset(false)) break;
+
+    limit = 200;
+    do {
+      TIMER::delay_us(50);
+      #ifdef DEBUG_USE_USART
+      DBG::print("(RST)", false);
+      #endif
+    } while (--limit && UPDI::is_sys_stat(UPDI::UPDI_SYS_RSTSYS));
+
+    limit = 200;
+    do {
+      TIMER::delay_us(50);
+      #ifdef DEBUG_USE_USART
+      DBG::print("(PROG)", false);
+      #endif
+    } while (--limit && !UPDI::is_sys_stat(UPDI::UPDI_SYS_NVMPROG));
+
+    if (!UPDI::is_control(UPDI::ENABLE_NVMPG)) {
+      if (!UPDI::read_parameter()) break;
+    }
+
+    UPDI::set_control(UPDI::ENABLE_NVMPG);
+    return true;
   }
   return false;
 }
@@ -400,16 +415,16 @@ bool UPDI::enter_updi (void) {
   ABORT::stop_timer();
   UPDI::tdir_pull();
   UPDI::NVMPROGVER = 0;
-  UPDI::clear_control(UPDI::UPDI_ACTIVE | UPDI::UPDI_LOWBAUD | UPDI::ENABLE_NVMPG);
+  UPDI::clear_control(UPDI::UPDI_ACTIVE | /* UPDI::UPDI_LOWBAUD | */ UPDI::ENABLE_NVMPG);
   SYS::pgen_enable();
   // SYS::trst_disable();
-  for (uint8_t i = 0; i <= 2; i++) {
+  for (uint8_t i = 0; i < 3; i++) {
     if (setjmp(ABORT::CONTEXT) == 0) {
       ABORT::start_timer(ABORT::CONTEXT, 100);
-      UPDI::fallback_speed(UPDI_USART_BAUDRATE >> i);
+      // UPDI::fallback_speed(UPDI_USART_BAUDRATE >> i);
       SYS::trst_enable();
       SYS::trst_disable();
-      TIMER::delay_us(200);
+      TIMER::delay_us(800);
       UPDI::BREAK(true);
       if (UPDI::read_parameter()) {
         ABORT::stop_timer();
@@ -423,7 +438,7 @@ bool UPDI::enter_updi (void) {
       DBG::print("(U_TO)", false);
       #endif
     }
-    UPDI::set_control(UPDI::UPDI_LOWBAUD);
+    // UPDI::set_control(UPDI::UPDI_LOWBAUD);
   }
   return result;
 }
@@ -437,6 +452,90 @@ bool UPDI::leave_updi (void) {
     #ifdef DEBUG_USE_USART
     DBG::print("[U_OF]"); // UPDI disabled
     #endif
+    return true;
+  }
+  return false;
+}
+
+bool UPDI::write_userrow(uint32_t start_addr, size_t byte_count) {
+  uint16_t limit;
+  for (;;) {
+    /* send urowwrite_key */
+    if (UPDI::send_bytes(UPDI::urowwrite_key, sizeof(UPDI::urowwrite_key)) != sizeof(UPDI::urowwrite_key)) break;
+    #ifdef DEBUG_USE_USART
+    DBG::print("(NVMKEY)", false);
+    #endif
+
+    /* restart target : change mode */
+    if (!UPDI::reset(true) || !UPDI::reset(false)) break;
+
+    limit = 200;
+    do {
+      TIMER::delay_us(50);
+      #ifdef DEBUG_USE_USART
+      DBG::print("(RST)", false);
+      #endif
+    } while (--limit && UPDI::is_sys_stat(UPDI::UPDI_SYS_RSTSYS));
+
+    limit = 1000;
+    do {
+      TIMER::delay_us(50);
+      #ifdef DEBUG_USE_USART
+      DBG::print("(PROG)", false);
+      #endif
+    } while (--limit && !UPDI::is_sys_stat(UPDI::UPDI_SYS_UROWPROG));
+
+    NVM::write_data(start_addr, byte_count);
+
+    #ifdef DEBUG_USE_USART
+    DBG::print("(STORE)", false);
+    #endif
+
+    set_cs_stat(UPDI_CS_ASI_SYS_CTRLA, UPDI_SET_UROWWRITE_FINAL | UPDI_SET_CLKREQ);
+
+    #ifdef DEBUG_USE_USART
+    DBG::print("(FINAL)", false);
+    #endif
+
+    limit = 500;
+    do {
+      TIMER::delay_us(50);
+      #ifdef DEBUG_USE_USART
+      DBG::print("(UNPROG)", false);
+      #endif
+    } while (--limit && UPDI::is_sys_stat(UPDI::UPDI_SYS_UROWPROG));
+
+    set_cs_stat(UPDI_CS_ASI_KEY_STATUS, UPDI_KEY_UROWWRITE);
+
+    #ifdef DEBUG_USE_USART
+    DBG::print("(COMPLETE)", false);
+    #endif
+
+    /* send nvmprog_key */
+    if (UPDI::send_bytes(UPDI::nvmprog_key, sizeof(UPDI::nvmprog_key)) != sizeof(UPDI::nvmprog_key)) break;
+    #ifdef DEBUG_USE_USART
+    DBG::print("(NVMKEY)", false);
+    #endif
+
+    /* restart target : change mode */
+    if (!UPDI::reset(true) || !UPDI::reset(false)) break;
+
+    limit = 200;
+    do {
+      TIMER::delay_us(50);
+      #ifdef DEBUG_USE_USART
+      DBG::print("(RST)", false);
+      #endif
+    } while (--limit && UPDI::is_sys_stat(UPDI::UPDI_SYS_RSTSYS));
+
+    limit = 500;
+    do {
+      TIMER::delay_us(50);
+      #ifdef DEBUG_USE_USART
+      DBG::print("(PROG)", false);
+      #endif
+    } while (--limit && !UPDI::is_sys_stat(UPDI::UPDI_SYS_NVMPROG));
+
     return true;
   }
   return false;
@@ -469,19 +568,20 @@ bool UPDI::runtime (uint8_t updi_cmd) {
       }
       case UPDI::UPDI_CMD_WRITE_MEMORY : {
         if (UPDI::NVMPROGVER == 0) break;
+        #ifdef DEBUG_USE_USART
         if (UPDI::is_sys_stat(UPDI::UPDI_SYS_LOCKSTATUS)) {
-          #ifdef DEBUG_USE_USART
           DBG::print("[LOCKED]", false);
-          #endif
-          break;
         }
+        #endif
         _result = NVM::write_memory();
+        #ifdef WRITE_RETRY
         if (!_result) {     /* write error retry */
           #ifdef DEBUG_USE_USART
           DBG::print("(RTY)");
           #endif
           _result = NVM::write_memory();
         }
+        #endif 
         break;
       }
       case UPDI::UPDI_CMD_ERASE : {

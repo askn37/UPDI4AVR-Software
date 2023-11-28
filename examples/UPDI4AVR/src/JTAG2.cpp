@@ -2,10 +2,10 @@
  * @file JTAG2.cpp
  * @author askn (K.Sato) multix.jp
  * @brief
- * @version 0.1
- * @date 2022-12-12
+ * @version 0.3
+ * @date 2023-11-28
  *
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2023 askn37 at github.com
  *
  */
 #include <util/atomic.h>
@@ -21,10 +21,8 @@
 namespace JTAG2 {
 /* Global valiables */
   uint8_t CONTROL;
-  uint8_t PARAM_EMU_MODE_VAL;
   jtag_baud_rate_e PARAM_BAUD_RATE_VAL;
   jtag_packet_t packet;
-  uint16_t flash_pagesize;
   uint8_t eeprom_pagesize;
 
   const uint16_t BAUD_TABLE[] = {
@@ -66,7 +64,7 @@ namespace JTAG2 {
     , 0x06                // $04: M_MCU_FW_MAJ : firmware version (major)
     , 0x01                // $05: M_MCU_HW     : hardware version
     , 0x01                // $06: S_MCU_BLDR   : boot-loader FW version
-    , 0x00                // $07: S_MCU_FW_MIN : firmware version (minor)
+    , 0x06                // $07: S_MCU_FW_MIN : firmware version (minor)
     , 0x06                // $08: S_MCU_FW_MAJ : firmware version (major)
     , 0x01                // $09: S_MCU_HW     : hardware version
     , 0x00                // $0A: SERIAL_NUMBER0
@@ -76,7 +74,8 @@ namespace JTAG2 {
     , 0x00                // $0E: SERIAL_NUMBER4
     , 0x00                // $0F: SERIAL_NUMBER5
                           // $10-$1C: DEVICE_ID_STR : terminate \0
-    , 'J', 'T', 'A', 'G', 'I', 'C', 'E', ' ', 'm', 'k', 'I', 'I', 0
+//  , 'J', 'T', 'A', 'G', 'I', 'C', 'E', ' ', 'm', 'k', 'I', 'I', 0
+    , 'U', 'P', 'D', 'I', '4', 'A', 'V', 'R', '_', '6', '0', '6', 0
   };
 }
 
@@ -252,6 +251,25 @@ bool JTAG2::sign_on (void) {
     for (uint8_t i = 0; i < sizeof(sign_on_resp); i++) {
       packet.body[i] = sign_on_resp[i];
     }
+    uint8_t* r = (uint8_t*) &packet.body[10];
+    uint8_t* p = (uint8_t*) &SIGROW_SERNUM0;
+    #ifdef SIGROW_SERNUM15
+    uint8_t* q = (uint8_t*) &SIGROW_SERNUM10;
+      *r++ = *q++ ^ *p++ ^ *p++;
+      *r++ = *q++ ^ *p++ ^ *p++;
+      *r++ = *q++ ^ *p++ ^ *p++;
+      *r++ = *q++ ^ *p++ ^ *p++;
+      *r++ = *q++ ^ *p++;
+      *r++ = *q++ ^ *p++;
+    #else
+    uint8_t* q = (uint8_t*) &SIGROW_SERNUM4;
+      *r++ = *q++ ^ *p++ ^ *p++;
+      *r++ = *q++ ^ *p++ ^ *p++;
+      *r++ = *q++;
+      *r++ = *q++;
+      *r++ = *q++;
+      *r++ = *q++;
+    #endif
     JTAG2::clear_control(JTAG2::ANS_FAILED);
     return true;
   }
@@ -266,11 +284,6 @@ void JTAG2::set_parameter (void) {
   uint8_t param_val = packet.body[2];
   switch (param_type) {
     case JTAG2::PARAM_EMU_MODE : {
-      JTAG2::PARAM_EMU_MODE_VAL = param_val;
-      #ifdef DEBUG_USE_USART
-      DBG::print(" EMU=", false);
-      DBG::write_hex(JTAG2::PARAM_EMU_MODE_VAL);
-      #endif
       break;
     }
     case JTAG2::PARAM_BAUD_RATE : {
@@ -326,7 +339,7 @@ void JTAG2::get_parameter (void) {
       DBG::print(" EMU=", false);
       #endif
       packet.size_word[0] = 2;
-      packet.body[1] = JTAG2::PARAM_EMU_MODE_VAL;
+      packet.body[1] = 6;
       break;
     }
     case JTAG2::PARAM_BAUD_RATE : {
@@ -357,9 +370,9 @@ void JTAG2::get_parameter (void) {
 }
 
 void JTAG2::set_device_descriptor (void) {
-  #ifdef DEBUG_USE_USART
   // uiFlashPageSize
-  flash_pagesize = *((uint16_t*)&packet.body[0x0f4]);
+  NVM::flash_pagesize = *((uint16_t*)&packet.body[0x0f4]);
+  #ifdef DEBUG_USE_USART
   // ucEepromPageSize
   eeprom_pagesize = packet.body[0x0f6];
   // ulFlashSize
@@ -367,7 +380,7 @@ void JTAG2::set_device_descriptor (void) {
   // uiFlashpages
   uint16_t flash_pageunit = *((uint16_t*)&packet.body[0x11a]);
   DBG::print(" FPS=", false);
-  DBG::print_dec(flash_pagesize);
+  DBG::print_dec(NVM::flash_pagesize);
   DBG::print(" EPS=", false);
   DBG::print_dec(eeprom_pagesize);
   DBG::print(" FAS=", false);
@@ -380,7 +393,7 @@ void JTAG2::set_device_descriptor (void) {
   DBG::dump(&packet.body[0], packet.size_word[0]);
   #endif
   #endif
-  JTAG2::set_response(JTAG2::RSP_OK);
+  // JTAG2::set_response(JTAG2::RSP_OK);
 }
 
 // end of code
