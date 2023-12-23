@@ -109,7 +109,7 @@ bool NVM::write_memory (void) {
       before_address = start_addr;
       if (UPDI::NVMPROGVER == '0')
         return NVM::write_flash(start_addr, byte_count, is_bound);
-      else if (UPDI::NVMPROGVER == '2')
+      else if (UPDI::NVMPROGVER == '2' || UPDI::NVMPROGVER == '4')
         return NVM::write_flash_v2(start_addr, byte_count, is_bound);
       else
         return NVM::write_flash_v3(start_addr, byte_count, is_bound);
@@ -149,7 +149,7 @@ bool NVM::write_memory (void) {
   }
   if (UPDI::NVMPROGVER == '0')
     return NVM::write_eeprom(start_addr, byte_count);
-  else if (UPDI::NVMPROGVER == '2')
+  else if (UPDI::NVMPROGVER == '2' || UPDI::NVMPROGVER == '4')
     return NVM::write_eeprom_v2(start_addr, byte_count);
   else
     return NVM::write_eeprom_v3(start_addr, byte_count);

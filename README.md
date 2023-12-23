@@ -80,7 +80,7 @@ megaAVR-0 シリーズ、tinyAVR-2 シリーズ、AVR DA/DB/DD シリーズの�
 を有していること。
 
 > __リファレンス AVR は ATtiny824 とその上位品種である。__
-周辺機能が不足するため tinyAVR-0/1と AVR_EA/EBには対応していない。
+周辺機能が不足するため tinyAVR-0/1と AVR DU/EA/EBには対応していない。
 
 その他にこのファームウェアは 以下の製品でインストールできる。
 
@@ -90,11 +90,11 @@ megaAVR-0 シリーズ、tinyAVR-2 シリーズ、AVR DA/DB/DD シリーズの�
 - Arduino Nano Every (ATmega4809) -- __注意事項有り。（後述）__
 
 [askn37 / Multix Zinnia Product SDK](https://askn37.github.io/)
--- megaAVR-0, tinyAVR-0/1/2, AVR DA/DB/DD/EA series support
+-- megaAVR-0, tinyAVR-0/1/2, AVR DA/DB/DD/DU/EA/EB series support
 
 > デフォルトSDK。HV書込対応。
 
-- megaAVR-0 / tinyAVR-2 / AVR DA/DB/DD/EA/EB
+- megaAVR-0 / tinyAVR-2 / AVR DA/DB/DD/DU/EA/EB
 - Microchip Curiosity Nano ATmega4809 (DM320115)
 - Microchip Curiosity Nano ATtiny1627 (DM080104)
 - Microchip Curiosity Nano AVR128DA48 (DM164151)
@@ -181,6 +181,8 @@ UPDI4AVR を書き込んでも制御が横取りされるために期待した�
 |         |          |AVR16DD20 |AVR32DD20 |AVR64DD20  |           |VQFN20 SOP20 |
 |         |          |AVR16DD28 |AVR32DD28 |AVR64DD28  |           |DIP28 TSOP28 |
 |         |          |AVR16DD32 |AVR32DD32 |__AVR64DD32__|           |TQFP32 VQFN32|
+|AVR DU   |          |          |          |*AVR64DU28*|           |SOIC28 VQFN28|
+|         |          |          |          |*AVR64DU32*|           |TQFP32 VQFN32|
 |AVR EA   |          |AVR16EA28 |AVR32EA28 |AVR64EA28  |           |VQFN28|
 |         |          |AVR16EA32 |AVR32EA32 |__AVR64EA32__|           |TQFP32 VQFN32|
 |         |          |AVR16EA48 |AVR32EA48 |AVR64EA48  |           |TQFP48 VQFN48|
@@ -271,6 +273,9 @@ EEPROM書換などの高度な指示をすることは原則出来ない。
   - そういう FUSE をくれぐれも間違って書かない
 
 ## 更新情報
+
+- 2023/12/23
+  - __AVR_DU__ 系統に暫定対応。
 
 - 2023/11/28 (FW606A)
   - __UPDI4AVR Firmware__ (FW634B)からの技術的バックポートで AVR_EB対応準拠に更新。
