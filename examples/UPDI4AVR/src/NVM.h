@@ -14,8 +14,8 @@
 #include "../configuration.h"
 
 namespace NVM {
-  enum nvm_register_e {
-    /* register */
+  /* NVMCTRL v0,2 */
+  enum nvm_register_v02_e {
       NVMCTRL_REG_CTRLA    = 0x1000
     , NVMCTRL_REG_CTRLB    = 0x1001
     , NVMCTRL_REG_STATUS   = 0x1002
@@ -27,10 +27,29 @@ namespace NVM {
     , NVMCTRL_REG_ADDR     = 0x1008
     , NVMCTRL_REG_ADDRL    = 0x1008
     , NVMCTRL_REG_ADDRH    = 0x1009
-    , NVMCTRL_REG_ADDRZ    = 0x100A
+    , NVMCTRL_REG_ADDR2    = 0x100A
   };
-  /* NVMCTRL v1 */
-  enum nvm_control_e {
+  /* NVMCTRL v3,4,5 */
+  enum nvm_register_v345_e {
+    /* register */
+      NVMCTRL_V3_REG_CTRLA    = 0x1000
+    , NVMCTRL_V3_REG_CTRLB    = 0x1001
+    , NVMCTRL_V3_REG_INTCTRL  = 0x1004
+    , NVMCTRL_V3_REG_INTFLAGS = 0x1005
+    , NVMCTRL_V3_REG_STATUS   = 0x1006
+    , NVMCTRL_V3_REG_DATA     = 0x1008
+    , NVMCTRL_V3_REG_DATAL    = 0x1008
+    , NVMCTRL_V3_REG_DATAH    = 0x1009
+    , NVMCTRL_V3_REG_DATA2    = 0x100A
+    , NVMCTRL_V3_REG_DATA3    = 0x100B
+    , NVMCTRL_V3_REG_ADDR     = 0x100C
+    , NVMCTRL_V3_REG_ADDRL    = 0x100C
+    , NVMCTRL_V3_REG_ADDRH    = 0x100D
+    , NVMCTRL_V3_REG_ADDR2    = 0x100E
+    , NVMCTRL_V3_REG_ADDR3    = 0x100F
+  };
+  /* NVMCTRL v0 */
+  enum nvm_control_v0_e {
       NVM_CMD_WP   = 1
     , NVM_CMD_ER   = 2
     , NVM_CMD_ERWP = 3
@@ -39,8 +58,8 @@ namespace NVM {
     , NVM_CMD_EEER = 6
     , NVM_CMD_WFU  = 7
   };
-  /* NVMCTRL v2 */
-  enum nvm_control_v2_e {
+  /* NVMCTRL v2,4 */
+  enum nvm_control_v24_e {
       NVM_V2_CMD_NOCMD      = 0x00  /* NVM_V3_CMD_NOCMD */
     , NVM_V2_CMD_NOOP       = 0x01  /* NVM_V3_CMD_NOOP */
     , NVM_V2_CMD_FLWR       = 0x02  /* v2 only */
@@ -61,23 +80,7 @@ namespace NVM {
     , NVM_V2_CMD_CHER       = 0x20  /* NVM_V2_CMD_CHER */
     , NVM_V2_CMD_EECHER     = 0x30  /* NVM_V3_CMD_EECHER */
   };
-  /* NVMCTRL v3 */
-  enum nvm_register_v3_e {
-    /* register */
-      NVMCTRL_V3_REG_CTRLA    = 0x1000  /* v1/v2と共通 */
-    , NVMCTRL_V3_REG_CTRLB    = 0x1001  /* v1/v2と共通 */
-    , NVMCTRL_V3_REG_INTCTRL  = 0x1004
-    , NVMCTRL_V3_REG_INTFLAGS = 0x1005
-    , NVMCTRL_V3_REG_STATUS   = 0x1006
-    , NVMCTRL_V3_REG_DATA     = 0x1008
-    , NVMCTRL_V3_REG_DATAL    = 0x1008
-    , NVMCTRL_V3_REG_DATAH    = 0x1009
-    , NVMCTRL_V3_REG_ADDR     = 0x100C
-    , NVMCTRL_V3_REG_ADDRL    = 0x100C
-    , NVMCTRL_V3_REG_ADDRH    = 0x100D
-    , NVMCTRL_V3_REG_ADDRZ    = 0x100E
-  };
-  enum nvm_control_v3_e {
+  enum nvm_control_v35_e {
     /* command */
       NVM_V3_CMD_NOCMD      = 0x00  /* NVM_V2_CMD_NOCMD */
     , NVM_V3_CMD_NOOP       = 0x01  /* NVM_V2_CMD_NOOP */
@@ -97,10 +100,15 @@ namespace NVM {
     , NVM_V3_CMD_CHER       = 0x20  /* NVM_V2_CMD_CHER */
     , NVM_V3_CMD_EECHER     = 0x30  /* NVM_V2_CMD_EECHER */
   };
-  enum avr_base_addr_e {
+  enum avr_base_addr_v023_e {
       BASE_NVMCTRL = 0x1000
     , BASE_FUSE    = 0x1050
     , BASE_SIGROW  = 0x1100
+  };
+  enum avr_base_addr_v45_e {
+      BASE_V5_SIGROW   = 0x1080
+    , BASE_V5_USERROW  = 0x1200
+    , BASE_V5_BOOTROW  = 0x1300
   };
 
   extern uint32_t before_address;
@@ -127,6 +135,9 @@ namespace NVM {
   bool nvm_ctrl_v3 (uint8_t nvmcmd);
   bool write_eeprom_v3 (uint32_t start_addr, size_t byte_count);
   bool write_flash_v3 (uint32_t start_addr, size_t byte_count, bool is_bound);
+
+  bool write_eeprom_v4 (uint32_t start_addr, size_t byte_count);
+  bool write_flash_v4 (uint32_t start_addr, size_t byte_count, bool is_bound);
 }
 
 // end of code

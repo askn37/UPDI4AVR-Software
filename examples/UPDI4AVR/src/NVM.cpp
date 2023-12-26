@@ -109,7 +109,9 @@ bool NVM::write_memory (void) {
       before_address = start_addr;
       if (UPDI::NVMPROGVER == '0')
         return NVM::write_flash(start_addr, byte_count, is_bound);
-      else if (UPDI::NVMPROGVER == '2' || UPDI::NVMPROGVER == '4')
+      else if (UPDI::NVMPROGVER == '4')
+        return NVM::write_flash_v4(start_addr, byte_count, is_bound);
+      else if (UPDI::NVMPROGVER == '2')
         return NVM::write_flash_v2(start_addr, byte_count, is_bound);
       else
         return NVM::write_flash_v3(start_addr, byte_count, is_bound);
@@ -149,7 +151,9 @@ bool NVM::write_memory (void) {
   }
   if (UPDI::NVMPROGVER == '0')
     return NVM::write_eeprom(start_addr, byte_count);
-  else if (UPDI::NVMPROGVER == '2' || UPDI::NVMPROGVER == '4')
+  else if (UPDI::NVMPROGVER == '4')
+    return NVM::write_eeprom_v4(start_addr, byte_count);
+  else if (UPDI::NVMPROGVER == '2')
     return NVM::write_eeprom_v2(start_addr, byte_count);
   else
     return NVM::write_eeprom_v3(start_addr, byte_count);
@@ -350,6 +354,24 @@ bool NVM::write_eeprom_v3 (uint32_t start_addr, size_t byte_count) {
   return NVM::nvm_ctrl_v3(NVM::NVM_V3_CMD_EEPERW);
 }
 
+/* NVMCTRL v4 */
+bool NVM::write_eeprom_v4 (uint32_t start_addr, size_t byte_count) {
+  if (byte_count > 2) {
+    JTAG2::set_response(JTAG2::RSP_ILLEGAL_MEMORY_RANGE);
+    return true;
+  }
+  #ifdef DEBUG_DUMP_MEMORY
+  DBG::print("[WR]", false);
+  DBG::dump(start_addr, byte_count);
+  #endif
+
+  if (!NVM::nvm_ctrl_v3(NVM::NVM_V2_CMD_EEERWR)) return false;
+
+  if (!write_data(start_addr, byte_count)) return false;
+
+  return NVM::nvm_ctrl_v3(NVM::NVM_V2_CMD_NOCMD);
+}
+
 /* NVMCTRL v0 */
 bool NVM::write_flash (uint32_t start_addr, size_t byte_count, bool is_bound) {
   #ifdef DEBUG_DUMP_MEMORY
@@ -414,6 +436,27 @@ bool NVM::write_flash_v3 (uint32_t start_addr, size_t byte_count, bool is_bound)
   if (!write_data_word(start_addr, byte_count)) return false;
 
   return NVM::nvm_ctrl_v3(NVM::NVM_V3_CMD_FLPW);
+}
+
+/* NVMCTRL v4 */
+bool NVM::write_flash_v4 (uint32_t start_addr, size_t byte_count, bool is_bound) {
+  #ifdef DEBUG_DUMP_MEMORY
+  DBG::print("[WR]", false);
+  DBG::dump(start_addr, byte_count);
+  #endif
+
+  /* Sector erase if not chip erased */
+  /* However, only when the beginning of the page boundary is addressed */
+  if (!UPDI::is_control(UPDI::CHIP_ERASE)
+  && ((uint16_t)start_addr & (flash_pagesize - 1)) == 0) {
+    if (!NVM::nvm_ctrl_v3(NVM::NVM_V2_CMD_FLPER)) return false;
+    if (!UPDI::st8(start_addr, 0xFF)) return false;
+  }
+  if (!NVM::nvm_ctrl_v3(NVM::NVM_V2_CMD_FLWR)) return false;
+
+  if (!write_data_word(start_addr, byte_count)) return false;
+
+  return NVM::nvm_ctrl_v3(NVM::NVM_V2_CMD_NOCMD);
 }
 
 // end of code

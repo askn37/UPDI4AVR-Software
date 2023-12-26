@@ -10,7 +10,7 @@ For AVR DA/DB, megaAVR-0, tinyAVR-2 series from using avrdude, Arduino IDE\
 
 `UPDI4AVR`プロダクトには以下の三種類があるが、このブランチはその最初のものである。
 
-- UPDI対応Arduino互換機で動作する汎用ソフトウェアとしての __UPDI4AVR Software__
+- UPDI対応Arduino互換機で動作する汎用ソフトウェアとしての __UPDI4AVR Software__ <--
 - 専用HV制御回路を含むオープンソースハードウェアとして設計された [__UPDI4AVR Programmer__](https://askn37.github.io/product/UPDI4AVR/)
 - その専用ハードウェア用に作成された [__UPDI4AVR Firmware__](https://github.com/askn37/multix-zinnia-updi4avr-firmware-builder/)
 
@@ -19,7 +19,7 @@ For AVR DA/DB, megaAVR-0, tinyAVR-2 series from using avrdude, Arduino IDE\
 ## 特徴
 
 - UPDI対応 AVR のための、プログラミングホストファームウェア
-  - megaAVR-0系列、tinyAVR-2系列、AVR DA/DB/DD/EA/EB系列用
+  - megaAVR-0系列、tinyAVR-2系列、AVR DA/DB/DD/DU/EA/EB系列用
   - ホスト側、ターゲット側の双方を同系列の UPDI対応デバイスで統一できる
 - Arduino IDE および avrdude コマンドラインから使用可能
   - JTAGmkIIプロトコル準拠（JTAG2UPDI 互換）
@@ -39,16 +39,16 @@ For AVR DA/DB, megaAVR-0, tinyAVR-2 series from using avrdude, Arduino IDE\
 
 ハードウェアとしての UPDI4AVR の例
 
-- [試作型 MZU2216B](https://askn37.github.io/product/UPDI4AVR/2221_Zinnia-UPDI4AVRF-MZU2216B/) -- このページ用のモデル
-- [現行型 MZU2306B](https://askn37.github.io/product/UPDI4AVR) -- [Firmware Builder](https://github.com/askn37/multix-zinnia-updi4avr-firmware-builder) 対応モデル
+- [試作型 MZU2216B](https://askn37.github.io/product/UPDI4AVR/2221_Zinnia-UPDI4AVRF-MZU2216B/) -- このページのファームウェア用の設計例。
+- [現行型 MZU2306B](https://askn37.github.io/product/UPDI4AVR) -- [Firmware Builder](https://github.com/askn37/multix-zinnia-updi4avr-firmware-builder) 対応モデル。
 
-### UPDI4AVR Firmware との相違点
+### UPDI4AVR Firmware Builder 版との相違点
 
 - タイマー周辺機能の使い方が大幅に異なる。WatchDogTimer は使われていない。
 - 汎用的かつ多種のインストール先デバイスに対応するためコードの最適化がされていない。
 - RTS/DTR信号はパルス検出のみ行う。即応性が低いため、操作開始時の待機時間が長くなることがある。
 - 外部高電圧制御ピンが1本だけのため、対象デバイス毎に異なる制御電圧や、印加対象ピンの自動切り替えに対応していない。
-  - 従って tinyAVR と AVR_DD/EA/EB それぞれの対応グループ切り替えは、外部ジャンパーピンに依存する。
+  - 従って tinyAVR と AVR_DD/DU/EA/EB それぞれの対応グループ切り替えは、外部ジャンパーピンに依存する。
 
 ## Arduino IDE への導入
 
@@ -274,10 +274,10 @@ EEPROM書換などの高度な指示をすることは原則出来ない。
 
 ## 更新情報
 
-- 2023/12/23
+- 2023/12/23 v0.2.10
   - __AVR_DU__ 系統に暫定対応。
 
-- 2023/11/28 (FW606A)
+- 2023/11/28 v0.2.9
   - __UPDI4AVR Firmware__ (FW634B)からの技術的バックポートで AVR_EB対応準拠に更新。
     - 施錠されたデバイスの場合、擬似署名を返却する。
     - 施錠デバイスへの盲目的 USERROW 書き込み対応と、チップ消去操作の改善。

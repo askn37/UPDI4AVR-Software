@@ -32,7 +32,10 @@
  * unsupported : ATmega808/809 (FLASH 8KB / SRAM 1KB)
  */
 
-#if ( \
+#if defined(ARDUINO_ARCH_UPDI4AVR)
+  #error There is another sketch dedicated to this architecture : ARDUINO_ARCH_UPDI4AVR
+  #include "BUILD_STOP"
+#elif ( \
      defined(__AVR_ATmega4808__) \
   || defined(__AVR_ATmega3208__) \
   || defined(__AVR_ATmega1608__) \
@@ -103,7 +106,7 @@
   #define __AVR_MEGA_TINY__
   #define __AVR_TINY_2X__
 #else
-  #assert This MCU family is not supported
+  #error This MCU family is not supported
   #include BUILD_STOP
 #endif
 
