@@ -247,7 +247,6 @@ void JTAG2::sign_off (void) {
 bool JTAG2::sign_on (void) {
   if (JTAG2::transfer_enable()) {
     JTAG2::set_control(JTAG2::HOST_SIGN_ON);
-    NVM::before_address = -1;
     packet.size = sizeof(sign_on_resp);
     for (uint8_t i = 0; i < sizeof(sign_on_resp); i++) {
       packet.body[i] = sign_on_resp[i];

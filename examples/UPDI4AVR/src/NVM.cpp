@@ -39,7 +39,7 @@ namespace NVM {
     , UPDI::UPDI_SYNCH
     , UPDI::UPDI_ST | UPDI::UPDI_PTR_INC | UPDI::UPDI_DATA2
   };
-  uint32_t before_address = -1;
+  uint32_t before_addr = ~0;
   uint16_t flash_pagesize;
 }
 
@@ -102,11 +102,17 @@ bool NVM::write_memory (void) {
         return true;
       }
 
-      /* Page boundaries require special handling */
-      bool is_bound = !UPDI::is_control(UPDI::CHIP_ERASE)
-        && before_address != start_addr
-        && ((flash_pagesize - 1) & (uint16_t)start_addr) == 0;
-      before_address = start_addr;
+      /* A page block must be erased before writing to a new page block.
+         The new AVRDUDE splits large page blocks into multiple queries to read-modify-write.
+         This prevents atomic operations and requires special handling. */
+      bool is_bound = !UPDI::is_control(UPDI::CHIP_ERASE);
+      if (is_bound) {
+        uint16_t block_addr = (start_addr >> 1) & ~((flash_pagesize - 1) >> 1);
+        is_bound = before_addr != block_addr;
+        before_addr = block_addr;
+      }
+
+      /* NVMCTRL processing steps vary depending on the version. */
       if (UPDI::NVMPROGVER == '0')
         return NVM::write_flash(start_addr, byte_count, is_bound);
       else if (UPDI::NVMPROGVER == '4')
@@ -149,6 +155,8 @@ bool NVM::write_memory (void) {
         return true;
       }
   }
+
+  /* NVMCTRL processing steps vary depending on the version. */
   if (UPDI::NVMPROGVER == '0')
     return NVM::write_eeprom(start_addr, byte_count);
   else if (UPDI::NVMPROGVER == '4')

@@ -111,7 +111,6 @@ namespace NVM {
     , BASE_V5_BOOTROW  = 0x1300
   };
 
-  extern uint32_t before_address;
   extern uint16_t flash_pagesize;
   bool read_memory (void);
   bool write_memory (void);
