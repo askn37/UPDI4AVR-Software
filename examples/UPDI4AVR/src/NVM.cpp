@@ -92,7 +92,18 @@ bool NVM::write_memory (void) {
     mem_type = JTAG2::MTYPE_SRAM;
   }
 
+  if (UPDI::is_control(UPDI::UPDI_ACTIVE) && mem_type == JTAG2::MTYPE_USERSIG
+   && start_addr <  NVM::BASE45_BOOTROW       // 0x10ff
+   && start_addr >= NVM::BASE45_USERROW) {    // 0x1200
+    if ((byte_count & 0x1f) != 0) {
+      JTAG2::set_response(JTAG2::RSP_ILLEGAL_MEMORY_RANGE);
+      return true;
+    }
+    return UPDI::write_userrow(start_addr, byte_count);
+  }
+
   switch (mem_type) {
+    case JTAG2::MTYPE_USERSIG :
     case JTAG2::MTYPE_FLASH_PAGE :
     case JTAG2::MTYPE_BOOT_FLASH :
     case JTAG2::MTYPE_XMEGA_FLASH :
@@ -128,14 +139,6 @@ bool NVM::write_memory (void) {
   if (byte_count == 0 || byte_count > 256) {
     JTAG2::set_response(JTAG2::RSP_ILLEGAL_MEMORY_RANGE);
     return true;
-  }
-
-  if (UPDI::is_control(UPDI::UPDI_ACTIVE) && mem_type == JTAG2::MTYPE_USERSIG) {
-    if ((byte_count & 0x1f) != 0) {
-      JTAG2::set_response(JTAG2::RSP_ILLEGAL_MEMORY_RANGE);
-      return true;
-    }
-    return UPDI::write_userrow(start_addr, byte_count);
   }
 
   if (!UPDI::is_control(UPDI::ENABLE_NVMPG)) return false;
