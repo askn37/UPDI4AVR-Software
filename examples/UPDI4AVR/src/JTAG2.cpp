@@ -263,16 +263,16 @@ bool JTAG2::sign_on (void) {
     uint8_t* p = (uint8_t*) &SIGROW_SERNUM0;
     #ifdef SIGROW_SERNUM15
     uint8_t* q = (uint8_t*) &SIGROW_SERNUM10;
-      *r++ = *q++ ^ *p++ ^ *p++;
-      *r++ = *q++ ^ *p++ ^ *p++;
-      *r++ = *q++ ^ *p++ ^ *p++;
-      *r++ = *q++ ^ *p++ ^ *p++;
+      *r = *q++ ^ *p++; *r++ ^= *p++;
+      *r = *q++ ^ *p++; *r++ ^= *p++;
+      *r = *q++ ^ *p++; *r++ ^= *p++;
+      *r = *q++ ^ *p++; *r++ ^= *p++;
       *r++ = *q++ ^ *p++;
       *r++ = *q++ ^ *p++;
     #else
     uint8_t* q = (uint8_t*) &SIGROW_SERNUM4;
-      *r++ = *q++ ^ *p++ ^ *p++;
-      *r++ = *q++ ^ *p++ ^ *p++;
+      *r = *q++ ^ *p++; *r++ ^= *p++;
+      *r = *q++ ^ *p++; *r++ ^= *p++;
       *r++ = *q++;
       *r++ = *q++;
       *r++ = *q++;

@@ -73,8 +73,8 @@ void UPDI::drain (void) {
   uint8_t j = 0;
   do {
     if (bit_is_set(UPDI_USART_MODULE.STATUS, USART_RXCIF_bp)) {
-      uint8_t _c = UPDI_USART_MODULE.RXDATAH ^ 0x80;
-      uint8_t _d = UPDI_USART_MODULE.RXDATAL;
+      UPDI::LASTH = UPDI_USART_MODULE.RXDATAH;
+      UPDI::LASTL = UPDI_USART_MODULE.RXDATAL;
       j = 0;
     }
   } while (--j);
@@ -347,7 +347,6 @@ bool UPDI::read_parameter (void) {
 }
 
 bool UPDI::chip_erase (void) {
-  uint16_t limit;
   for (;;) {
     /* Using HV mode before */
     if (!UPDI::is_control(UPDI::UPDI_ACTIVE | UPDI::ENABLE_NVMPG)) {
@@ -503,7 +502,6 @@ bool UPDI::leave_updi (void) {
 }
 
 bool UPDI::write_userrow(uint32_t start_addr, size_t byte_count) {
-  uint16_t limit;
   for (;;) {
     drain();
     if (!loop_until_sys_stat_is_clear(UPDI_SYS_RSTSYS, 500)) break;
