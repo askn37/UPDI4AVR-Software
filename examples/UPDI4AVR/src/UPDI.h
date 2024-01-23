@@ -150,6 +150,8 @@ namespace UPDI {
     UPDI::CONTROL &= ~(value);
   }
 
+  void drain (void);
+
   void BREAK (bool longbreak = false, bool use_hv = false);
   bool SEND (const uint8_t data);
   uint8_t RECV (void);
@@ -176,9 +178,14 @@ namespace UPDI {
   inline bool reset (bool logic) {
     return set_cs_stat(UPDI_CS_ASI_RESET_REQ, (logic ? UPDI_RSTREQ : 0));
   }
-inline bool set_cs_ctra (const uint8_t data) {
-  return set_cs_stat(UPDI_CS_CTRLA, data);
-}
+  inline bool set_cs_ctra (const uint8_t data) {
+    return set_cs_stat(UPDI_CS_CTRLA, data);
+  }
+  bool loop_until_sys_stat_is_clear (uint8_t bitmap, uint16_t limit = 0);
+  bool loop_until_sys_stat_is_set (uint8_t bitmap, uint16_t limit = 0);
+  bool loop_until_key_stat_is_clear (uint8_t bitmap, uint16_t limit = 0);
+  bool loop_until_key_stat_is_set (uint8_t bitmap, uint16_t limit = 0);
+
   bool read_parameter (void);
   bool chip_erase (void);
   bool enter_nvmprog (void);

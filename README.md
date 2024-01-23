@@ -44,7 +44,7 @@ For AVR DA/DB, megaAVR-0, tinyAVR-2 series from using avrdude, Arduino IDE\
 
 ### UPDI4AVR Firmware Builder 版との相違点
 
-- タイマー周辺機能の使い方が大幅に異なる。WatchDogTimer は使われていない。
+- タイマー周辺機能の使い方が大幅に異なる。WatchDogTimer は積極的には使われていない。
 - 汎用的かつ多種のインストール先デバイスに対応するためコードの最適化がされていない。
 - RTS/DTR信号はパルス検出のみ行う。即応性が低いため、操作開始時の待機時間が長くなることがある。
 - 外部高電圧制御ピンが1本だけのため、対象デバイス毎に異なる制御電圧や、印加対象ピンの自動切り替えに対応していない。
@@ -161,10 +161,10 @@ UPDI4AVR を書き込んでも制御が横取りされるために期待した�
 |tinyAVR-1|ATtiny212 |__ATtiny412__|          |           |           |SOP8         |
 |         |ATtiny214 |ATtiny414 |__ATtiny814__|__ATtiny1614__|           |SOP14        |
 |         |          |ATtiny416 |ATtiny816 |__ATtiny1616__|__ATtiny3216__|VQFN20 SOP20 |
-|         |          |ATtiny417 |ATtiny817 |ATtiny1617 |ATTiny3217 |VQFN24       |
+|         |          |__ATtiny417__|ATtiny817 |ATtiny1617 |ATTiny3217 |VQFN24       |
 |tinyAVR-2|          |ATtiny424 |__ATtiny824__|ATtiny1624 |ATtiny3224 |SOP14 TSSOP14|
 |         |          |ATtiny426 |ATtiny826 |__ATtiny1626__|ATtiny3226 |VQFN20 SOP20 |
-|         |          |ATtiny427 |ATtiny827 |ATtiny1627 |ATTiny3227 |VQFN24       |
+|         |          |ATtiny427 |ATtiny827 |__ATtiny1627__|ATTiny3227 |VQFN24       |
 ||8KB|16KB|32KB|48KB|||
 |megaAVR-0|ATmega808 |ATmega1608|ATmega3208|__ATmega4808__|           |TSOP28 TQFP32|
 |         |ATmega809 |ATmega1609|ATmega3209|__ATmega4809__|           |DIP40 TQFP48 |
@@ -177,20 +177,20 @@ UPDI4AVR を書き込んでも制御が横取りされるために期待した�
 |         |          |          |AVR32DB32 |AVR64DB32  |__AVR128DB32__|TQFP32 VQFN32|
 |         |          |          |AVR32DB48 |AVR64DB48  |__AVR128DB48__|TQFP48 VQFN48|
 |         |          |          |          |AVR64DB64  |AVR128DB64 |VQFN64       |
-|AVR DD   |          |AVR16DD14 |__AVR32DD14__|AVR64DD14  |           |SOP14 TSSOP14|
+|AVR DD   |          |AVR16DD14 |__AVR32DD14__|AVR64DD14  |        |SOP14 TSSOP14|
 |         |          |AVR16DD20 |AVR32DD20 |AVR64DD20  |           |VQFN20 SOP20 |
 |         |          |AVR16DD28 |AVR32DD28 |AVR64DD28  |           |DIP28 TSOP28 |
-|         |          |AVR16DD32 |AVR32DD32 |__AVR64DD32__|           |TQFP32 VQFN32|
+|         |          |AVR16DD32 |AVR32DD32 |__AVR64DD32__|         |TQFP32 VQFN32|
 |AVR DU   |          |          |          |*AVR64DU28*|           |SOIC28 VQFN28|
 |         |          |          |          |*AVR64DU32*|           |TQFP32 VQFN32|
 |AVR EA   |          |AVR16EA28 |AVR32EA28 |AVR64EA28  |           |VQFN28|
-|         |          |AVR16EA32 |AVR32EA32 |__AVR64EA32__|           |TQFP32 VQFN32|
+|         |          |AVR16EA32 |AVR32EA32 |__AVR64EA32__|         |TQFP32 VQFN32|
 |         |          |AVR16EA48 |AVR32EA48 |AVR64EA48  |           |TQFP48 VQFN48|
-|AVR EB   |          |*AVR16EB14*|*AVR32EB14*|           |           |TSOP14|
-|         |          |*AVR16EB20*|*AVR32EB20*|           |           |VQFN20|
-|         |          |*AVR16EB28*|*AVR32EB28*|           |           |VQFN28|
-|         |          |*AVR16EB32*|*AVR32EB32*|           |           |TQFP32 VQFN32|
-|         |          |*AVR16EB48*|*AVR32EB48*|           |           |TQFP48 VQFN48|
+|AVR EB   |          |AVR16EB14 |          |           |           |TSOP14|
+|         |          |AVR16EB20 |          |           |           |VQFN20|
+|         |          |AVR16EB28 |          |           |           |VQFN28|
+|         |          |__AVR16EB32__|       |           |           |TQFP32 VQFN32|
+|         |          |AVR16EB48 |          |           |           |TQFP48 VQFN48|
 
 > 似たような型番だが以下の品種は本表のUPDI系ファミリに該当しない PDI/TPI系の別系統別品種。\
 Attiny102/104 ATtiny828/1628/3228
@@ -274,8 +274,8 @@ EEPROM書換などの高度な指示をすることは原則出来ない。
 
 ## 更新情報
 
-- 2023/12/23 v0.2.10
-  - __AVR_DU__ 系統に暫定対応。
+- 2024/01/23 v0.2.10
+  - FW607に改正。__AVR_EB__ 系統に対応。__AVR_DU__ 系統に暫定対応。
 
 - 2023/11/28 v0.2.9
   - __UPDI4AVR Firmware__ (FW634B)からの技術的バックポートで AVR_EB対応準拠に更新。

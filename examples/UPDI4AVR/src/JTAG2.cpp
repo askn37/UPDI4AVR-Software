@@ -60,11 +60,11 @@ namespace JTAG2 {
       JTAG2::RSP_SIGN_ON  // $00: MESSAGE_ID   : $86
     , 0x01                // $01: COMM_ID      : Communications protocol version
     , 0x01                // $02: M_MCU_BLDR   : boot-loader FW version
-    , 0x06                // $03: M_MCU_FW_MIN : firmware version (minor)
+    , 0x07                // $03: M_MCU_FW_MIN : firmware version (minor)
     , 0x06                // $04: M_MCU_FW_MAJ : firmware version (major)
     , 0x01                // $05: M_MCU_HW     : hardware version
     , 0x01                // $06: S_MCU_BLDR   : boot-loader FW version
-    , 0x06                // $07: S_MCU_FW_MIN : firmware version (minor)
+    , 0x07                // $07: S_MCU_FW_MIN : firmware version (minor)
     , 0x06                // $08: S_MCU_FW_MAJ : firmware version (major)
     , 0x01                // $09: S_MCU_HW     : hardware version
     , 0x00                // $0A: SERIAL_NUMBER0
@@ -75,7 +75,7 @@ namespace JTAG2 {
     , 0x00                // $0F: SERIAL_NUMBER5
                           // $10-$1C: DEVICE_ID_STR : terminate \0
 //  , 'J', 'T', 'A', 'G', 'I', 'C', 'E', ' ', 'm', 'k', 'I', 'I', 0
-    , 'U', 'P', 'D', 'I', '4', 'A', 'V', 'R', '_', '6', '0', '6', 0
+    , 'U', 'P', 'D', 'I', '4', 'A', 'V', 'R', '_', '6', '0', '7', 0
   };
 }
 
@@ -119,17 +119,27 @@ bool JTAG2::transfer_enable (void) {
 
 void JTAG2::transfer_disable (void) {
   if (JTAG2::is_control(JTAG2::USART_TX_EN)) {
+    /* Close the JTAG transmit port and reset the device. */
     loop_until_bit_is_set(JTAG_USART_MODULE.STATUS, USART_TXCIF_bp);
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
       JTAG_USART_MODULE.CTRLB &= ~USART_TXEN_bm;
     }
     PIN_CTRL(JTAG_USART_PORT,JTAG_JTTX_PIN) = PORT_ISC_INPUT_DISABLE_gc;
     JTAG_USART_PORT.DIRCLR = _BV(JTAG_JTTX_PIN);
-    if (UPDI::CONTROL & UPDI::UPDI_ACTIVE) {
+    if (UPDI::is_control(UPDI::UPDI_ACTIVE)) {
+      /* Log out from the device's UDPI. */
       UPDI::runtime(UPDI::UPDI_CMD_LEAVE);
+    }
+    if (UPDI::is_control(UPDI::CHIP_ERASE)) {
+      /* After complete deletion, the computer will be
+        restarted to remove any discrepancies.
+        Required for AVR-Dx chips larger than 64KiB. */
+      loop_until_bit_is_clear(WDT_STATUS, WDT_SYNCBUSY_bp);
+      _PROTECTED_WRITE(WDT_CTRLA, WDT_PERIOD_64CLK_gc);
     }
     SYS::pgen_disable();
     SYS::trst_enable();
+    TIMER::delay_us(250);
     SYS::trst_disable();
     #ifdef DEBUG_USE_USART
     DBG::print("(TX_OF)", false);
@@ -160,7 +170,9 @@ void JTAG2::answer_transfer (void) {
   while (len--) crc = JTAG2::crc16_update(crc, *q++);
   (*q++) = crc;
   (*q++) = crc >> 8;
-  while (p != q) JTAG2::put(*p++);
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    while (p != q) JTAG2::put(*p++);
+  }
 }
 
 bool JTAG2::answer_after_change (void) {
@@ -173,10 +185,6 @@ bool JTAG2::answer_after_change (void) {
   if (JTAG2::is_control(JTAG2::HOST_SIGN_ON | JTAG2::USART_TX_EN) == JTAG2::USART_TX_EN) {
     JTAG2::transfer_disable();
     /* final status indicator */
-    if (!JTAG2::is_control(JTAG2::ANS_FAILED)) {
-      UPDI::tdir_push();
-      ABORT::start_timer(ABORT::CONTEXT, 1000);
-    }
     continuous = false;
     JTAG2::CONTROL = UPDI::CONTROL = 0;
   }

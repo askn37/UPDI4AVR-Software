@@ -50,7 +50,8 @@ namespace NVM {
   };
   /* NVMCTRL v0 */
   enum nvm_control_v0_e {
-      NVM_CMD_WP   = 1
+      NVM_CMD_NOOP = 0
+    , NVM_CMD_WP   = 1
     , NVM_CMD_ER   = 2
     , NVM_CMD_ERWP = 3
     , NVM_CMD_PBC  = 4
@@ -141,6 +142,8 @@ namespace NVM {
 
   bool write_eeprom_v4 (uint32_t start_addr, size_t byte_count);
   bool write_flash_v4 (uint32_t start_addr, size_t byte_count, bool is_bound);
+
+  bool chip_erase (void);
 }
 
 // end of code

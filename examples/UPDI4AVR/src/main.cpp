@@ -127,13 +127,14 @@ namespace {
           );
         }
         SYS::trst_enable();
+        TIMER::delay_us(250);
         SYS::trst_disable();
         UPDI::runtime(UPDI::UPDI_CMD_TARGET_RESET);
         SYS::pgen_disable();
       }
 
       /* cleanup */
-      if (JTAG2::CONTROL & JTAG2::HOST_SIGN_ON) {
+      if (JTAG2::is_control(JTAG2::HOST_SIGN_ON)) {
         #ifdef DEBUG_USE_USART
         DBG::print("!H_TO");  // HOST timeout
         #endif
@@ -141,7 +142,7 @@ namespace {
         JTAG2::answer_transfer();
       }
       JTAG2::sign_off();
-      if (JTAG2::CONTROL & JTAG2::CHANGE_BAUD) {
+      if (JTAG2::is_control(JTAG2::CHANGE_BAUD)) {
         JTAG2::change_baudrate(false);
       }
       JTAG2::answer_after_change();
@@ -171,6 +172,9 @@ namespace {
         break;
       }
       case JTAG2::CMND_GET_SIGN_ON : {
+        before_seqnum = ~0;
+        loop_until_bit_is_clear(WDT_STATUS, WDT_SYNCBUSY_bp);
+        _PROTECTED_WRITE(WDT_CTRLA, WDT_PERIOD_OFF_gc);
         #ifdef DEBUG_USE_USART
         DBG::print(">GET_SIGN_ON", false);
         #endif

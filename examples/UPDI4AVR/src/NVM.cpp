@@ -41,12 +41,21 @@ namespace NVM {
   };
   uint32_t before_addr = ~0;
   uint16_t flash_pagesize;
+
+  bool check_pagesize (uint16_t seed, uint16_t test) {
+    while (test != seed) {
+      seed >>= 1;
+      if (seed < 2) return false;
+    }
+    return true;
+  }
 }
 
 bool NVM::read_memory (void) {
   uint8_t  mem_type   =               JTAG2::packet.body[1];
   size_t   byte_count = *((uint32_t*)&JTAG2::packet.body[2]);
   uint32_t start_addr = *((uint32_t*)&JTAG2::packet.body[6]);
+  before_addr = ~0;
   #ifdef DEBUG_USE_USART
   DBG::print(" MT=", false); DBG::write_hex(mem_type);
   DBG::print(" BC=", false); DBG::print_dec(byte_count);
@@ -106,9 +115,10 @@ bool NVM::write_memory (void) {
     case JTAG2::MTYPE_USERSIG :
     case JTAG2::MTYPE_FLASH_PAGE :
     case JTAG2::MTYPE_BOOT_FLASH :
-    case JTAG2::MTYPE_XMEGA_FLASH :
-    {
-      if (byte_count != flash_pagesize && byte_count != 256 && byte_count != 64 && byte_count != 2) {
+    case JTAG2::MTYPE_XMEGA_FLASH : {
+      /* Instructions with mismatched page sizes are rejected */
+      if (!check_pagesize(flash_pagesize, byte_count)) {
+        /* Kill the process with a strong error */
         JTAG2::set_response(JTAG2::RSP_ILLEGAL_MEMORY_RANGE);
         return true;
       }
@@ -118,7 +128,7 @@ bool NVM::write_memory (void) {
          This prevents atomic operations and requires special handling. */
       bool is_bound = !UPDI::is_control(UPDI::CHIP_ERASE);
       if (is_bound) {
-        uint16_t block_addr = (start_addr >> 1) & ~((flash_pagesize - 1) >> 1);
+        uint32_t block_addr = start_addr & ~(flash_pagesize - 1);
         is_bound = before_addr != block_addr;
         before_addr = block_addr;
       }
@@ -266,7 +276,7 @@ bool NVM::write_fuse (uint16_t addr, uint8_t data) {
   if (!UPDI::sts8(NVM::NVMCTRL_REG_DATA,
     (uint8_t*)&fuse_packet, sizeof(fuse_packet))) return false;
   if (!NVM::nvm_ctrl(NVM::NVM_CMD_WFU)) return false;
-  return ((NVM::nvm_wait() & 7) == 0);
+  return ((NVM::nvm_wait() & 3) == 0);
 }
 
 bool NVM::write_data (uint32_t start_addr, size_t byte_count) {
@@ -326,7 +336,7 @@ bool NVM::write_eeprom (uint32_t start_addr, size_t byte_count) {
 
   /* NVMCTRL write page and complete */
   if (!NVM::nvm_ctrl(NVM::NVM_CMD_ERWP)) return false;
-  return NVM::nvm_wait() == 0;
+  return NVM::nvm_ctrl_v2(NVM::NVM_V2_CMD_NOCMD);
 }
 
 /* NVMCTRL v2 */
@@ -340,11 +350,12 @@ bool NVM::write_eeprom_v2 (uint32_t start_addr, size_t byte_count) {
   DBG::dump(start_addr, byte_count);
   #endif
 
+  NVM::nvm_ctrl_v2(NVM::NVM_V2_CMD_NOCMD);
   if (!NVM::nvm_ctrl_v2(NVM::NVM_V2_CMD_EEERWR)) return false;
 
   if (!write_data(start_addr, byte_count)) return false;
 
-  return NVM::nvm_ctrl_v2(NVM::NVM_V2_CMD_NOCMD);
+  return ((NVM::nvm_wait() & 3) == 0);
 }
 
 /* NVMCTRL v3 */
@@ -376,11 +387,12 @@ bool NVM::write_eeprom_v4 (uint32_t start_addr, size_t byte_count) {
   DBG::dump(start_addr, byte_count);
   #endif
 
+  NVM::nvm_ctrl_v3(NVM::NVM_V2_CMD_NOCMD);
   if (!NVM::nvm_ctrl_v3(NVM::NVM_V2_CMD_EEERWR)) return false;
 
   if (!write_data(start_addr, byte_count)) return false;
 
-  return NVM::nvm_ctrl_v3(NVM::NVM_V2_CMD_NOCMD);
+  return ((NVM::nvm_wait_v3() & 3) == 0);
 }
 
 /* NVMCTRL v0 */
@@ -392,14 +404,13 @@ bool NVM::write_flash (uint32_t start_addr, size_t byte_count, bool is_bound) {
 
   /* This type can use the erase write concurrent command. */
   /* NVMCTRL page buffer clear */
-  NVM::nvm_wait();
-  if (!NVM::nvm_ctrl(NVM::NVM_CMD_PBC)) return false;
+  if (is_bound) {
+    NVM::nvm_wait();
+    if (!NVM::nvm_ctrl(NVM::NVM_CMD_PBC)) return false;
+  }
   NVM::nvm_wait();
 
   if (!write_data_word(start_addr, byte_count)) return false;
-
-  /* disable RSD mode */
-  if (!UPDI::set_cs_ctra(UPDI::UPDI_SET_GTVAL_2)) return false;
 
   /* NVMCTRL write page and complete */
   if (!NVM::nvm_ctrl(NVM::NVM_CMD_ERWP)) return false;
@@ -415,8 +426,8 @@ bool NVM::write_flash_v2 (uint32_t start_addr, size_t byte_count, bool is_bound)
 
   /* Sector erase if not chip erased */
   /* However, only when the beginning of the page boundary is addressed */
-  if (!UPDI::is_control(UPDI::CHIP_ERASE)
-  && ((uint16_t)start_addr & (flash_pagesize - 1)) == 0) {
+  NVM::nvm_ctrl_v2(NVM::NVM_V2_CMD_NOCMD);
+  if (is_bound) {
     if (!NVM::nvm_ctrl_v2(NVM::NVM_V2_CMD_FLPER)) return false;
     if (!UPDI::st8(start_addr, 0xFF)) return false;
   }
@@ -424,7 +435,7 @@ bool NVM::write_flash_v2 (uint32_t start_addr, size_t byte_count, bool is_bound)
 
   if (!write_data_word(start_addr, byte_count)) return false;
 
-  return NVM::nvm_ctrl_v2(NVM::NVM_V2_CMD_NOCMD);
+  return ((NVM::nvm_wait() & 3) == 0);
 }
 
 /* NVMCTRL v3 */
@@ -436,8 +447,7 @@ bool NVM::write_flash_v3 (uint32_t start_addr, size_t byte_count, bool is_bound)
 
   /* Sector erase if not chip erased */
   /* However, only when the beginning of the page boundary is addressed */
-  if (!UPDI::is_control(UPDI::CHIP_ERASE)
-  && ((uint16_t)start_addr & (flash_pagesize - 1)) == 0) {
+  if (is_bound) {
     NVM::nvm_wait_v3();
     if (!UPDI::st8(start_addr, 0xFF)) return false;
     if (!NVM::nvm_ctrl_v3(NVM::NVM_V3_CMD_FLPER)) return false;
@@ -458,8 +468,8 @@ bool NVM::write_flash_v4 (uint32_t start_addr, size_t byte_count, bool is_bound)
 
   /* Sector erase if not chip erased */
   /* However, only when the beginning of the page boundary is addressed */
-  if (!UPDI::is_control(UPDI::CHIP_ERASE)
-  && ((uint16_t)start_addr & (flash_pagesize - 1)) == 0) {
+  NVM::nvm_ctrl_v3(NVM::NVM_V2_CMD_NOCMD);
+  if (is_bound) {
     if (!NVM::nvm_ctrl_v3(NVM::NVM_V2_CMD_FLPER)) return false;
     if (!UPDI::st8(start_addr, 0xFF)) return false;
   }
@@ -467,7 +477,38 @@ bool NVM::write_flash_v4 (uint32_t start_addr, size_t byte_count, bool is_bound)
 
   if (!write_data_word(start_addr, byte_count)) return false;
 
-  return NVM::nvm_ctrl_v3(NVM::NVM_V2_CMD_NOCMD);
+  return ((NVM::nvm_wait_v3() & 3) == 0);
+}
+
+bool NVM::chip_erase (void) {
+  /* NVMCTRL processing steps vary depending on the version. */
+  if (UPDI::NVMPROGVER == '0') {
+    /* version 0 */
+    if (!nvm_ctrl_v2(NVM_CMD_CHER)) return false;
+    if (!nvm_ctrl_v2(NVM_CMD_PBC)) return false;
+    if (!nvm_ctrl_v2(NVM_CMD_NOOP)) return false;
+    nvm_wait();
+  }
+  else if (UPDI::NVMPROGVER == '2') {
+    /* version 2 */
+    if (!nvm_ctrl_v2(NVM_V2_CMD_CHER)) return false;
+    if (!nvm_ctrl_v2(NVM_V2_CMD_NOCMD)) return false;
+    nvm_wait();
+  }
+  else {
+    /* version 3,4,5 */
+    if (!nvm_ctrl_v3(NVM_V2_CMD_CHER)) return false;
+    if (!nvm_ctrl_v3(NVM_V2_CMD_NOCMD)) return false;
+    nvm_wait_v3();
+    if (UPDI::NVMPROGVER != '4') {
+      if (!nvm_ctrl_v3(NVM_V3_CMD_FLPBCLR)) return false;
+      if (!nvm_ctrl_v3(NVM_V2_CMD_NOCMD)) return false;
+      if (!nvm_ctrl_v3(NVM_V3_CMD_EEPBCLR)) return false;
+      if (!nvm_ctrl_v3(NVM_V2_CMD_NOCMD)) return false;
+    }
+  }
+  UPDI::set_control(UPDI::CHIP_ERASE);
+  return true;
 }
 
 // end of code

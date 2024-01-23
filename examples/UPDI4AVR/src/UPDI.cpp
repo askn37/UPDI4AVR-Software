@@ -69,6 +69,17 @@ void UPDI::fallback_speed (uint32_t baudrate) {
   #endif
 }
 
+void UPDI::drain (void) {
+  uint8_t j = 0;
+  do {
+    if (bit_is_set(UPDI_USART_MODULE.STATUS, USART_RXCIF_bp)) {
+      uint8_t _c = UPDI_USART_MODULE.RXDATAH ^ 0x80;
+      uint8_t _d = UPDI_USART_MODULE.RXDATAL;
+      j = 0;
+    }
+  } while (--j);
+}
+
 void UPDI::BREAK (bool longbreak, bool use_hv) {
   uint16_t baud_reg = UPDI_USART_MODULE.BAUD;
   UPDI_USART_MODULE.BAUD = longbreak ? ~1 : (baud_reg << 2);
@@ -243,6 +254,62 @@ bool UPDI::set_cs_stat (const uint8_t code, const uint8_t data) {
 }
 /* inline bool reset (bool logic);  // UPDI_CS_ASI_RESET_REQ, UPDI_RSTREQ */
 
+bool UPDI::loop_until_sys_stat_is_clear (uint8_t bitmap, uint16_t limit) {
+  #ifdef ENABLE_DEBUG_UPDI_SENDER
+  uint16_t _back = _send_ptr;
+  #endif
+  do {
+    if (!is_sys_stat(bitmap)) return true;
+    #ifdef ENABLE_DEBUG_UPDI_SENDER
+    _send_ptr = _back;
+    #endif
+    TIMER::delay_us(50);
+  } while (--limit);
+  return false;
+}
+
+bool UPDI::loop_until_sys_stat_is_set (uint8_t bitmap, uint16_t limit) {
+  #ifdef ENABLE_DEBUG_UPDI_SENDER
+  uint16_t _back = _send_ptr;
+  #endif
+  do {
+    if (is_sys_stat(bitmap)) return true;
+    #ifdef ENABLE_DEBUG_UPDI_SENDER
+    _send_ptr = _back;
+    #endif
+    TIMER::delay_us(50);
+  } while (--limit);
+  return false;
+}
+
+bool UPDI::loop_until_key_stat_is_clear (uint8_t bitmap, uint16_t limit) {
+  #ifdef ENABLE_DEBUG_UPDI_SENDER
+  uint16_t _back = _send_ptr;
+  #endif
+  do {
+    if (!is_key_stat(bitmap)) return true;
+    #ifdef ENABLE_DEBUG_UPDI_SENDER
+    _send_ptr = _back;
+    #endif
+    TIMER::delay_us(50);
+  } while (--limit);
+  return false;
+}
+
+bool UPDI::loop_until_key_stat_is_set (uint8_t bitmap, uint16_t limit) {
+  #ifdef ENABLE_DEBUG_UPDI_SENDER
+  uint16_t _back = _send_ptr;
+  #endif
+  do {
+    if (is_key_stat(bitmap)) return true;
+    #ifdef ENABLE_DEBUG_UPDI_SENDER
+    _send_ptr = _back;
+    #endif
+    TIMER::delay_us(50);
+  } while (--limit);
+  return false;
+}
+
 bool UPDI::read_parameter (void) {
   uint8_t updi_sib[32];
   uint8_t *p;
@@ -287,6 +354,9 @@ bool UPDI::chip_erase (void) {
       UPDI::BREAK(false, true);
     }
 
+    drain();
+    if (!loop_until_sys_stat_is_clear(UPDI_SYS_RSTSYS, 500)) return false;
+
     /* send erase_key */
     if (UPDI::send_bytes(UPDI::erase_key, sizeof(UPDI::erase_key)) != sizeof(UPDI::erase_key)) break;
 
@@ -297,29 +367,15 @@ bool UPDI::chip_erase (void) {
     /* restart target : change mode */
     if (!UPDI::reset(true) || !UPDI::reset(false)) break;
 
-    limit = 200;
-    do {
-      TIMER::delay_us(50);
-      #ifdef DEBUG_USE_USART
-      DBG::print("(RST)", false);
-      #endif
-    } while (--limit && UPDI::is_sys_stat(UPDI::UPDI_SYS_RSTSYS));
+    /* If RSTSYS is true, it is still not accessible */
+    loop_until_sys_stat_is_clear(UPDI_SYS_RSTSYS);
 
-    limit = 200;
-    do {
-      TIMER::delay_us(50);
-      #ifdef DEBUG_USE_USART
-      DBG::print("(LOCK)", false);
-      #endif
-    } while (--limit && UPDI::is_sys_stat(UPDI::UPDI_SYS_LOCKSTATUS));
+    /* If LOCKSTATUS is clear, the chip is unlocked */
+    loop_until_sys_stat_is_clear(UPDI_SYS_LOCKSTATUS);
 
-    limit = 1000;
-    do {
-      TIMER::delay_us(50);
-      #ifdef DEBUG_USE_USART
-      DBG::print("(KEY)", false);
-      #endif
-    } while (--limit && UPDI::is_key_stat(UPDI::UPDI_KEY_CHIPERASE));
+    /* Make sure the CHER bit is cleared before next reset */
+    loop_until_key_stat_is_clear(UPDI_KEY_CHIPERASE);
+
     UPDI::set_control(UPDI::CHIP_ERASE | UPDI::UPDI_ACTIVE);
     JTAG2::clear_control(JTAG2::ANS_FAILED);
 
@@ -336,21 +392,9 @@ bool UPDI::chip_erase (void) {
     /* restart target : change mode */
     if (!UPDI::reset(true) || !UPDI::reset(false)) break;
 
-    limit = 200;
-    do {
-      TIMER::delay_us(50);
-      #ifdef DEBUG_USE_USART
-      DBG::print("(RST)", false);
-      #endif
-    } while (--limit && UPDI::is_sys_stat(UPDI::UPDI_SYS_RSTSYS));
+    loop_until_sys_stat_is_clear(UPDI_SYS_RSTSYS);
 
-    limit = 200;
-    do {
-      TIMER::delay_us(50);
-      #ifdef DEBUG_USE_USART
-      DBG::print("(PROG)", false);
-      #endif
-    } while (--limit && !UPDI::is_sys_stat(UPDI::UPDI_SYS_NVMPROG));
+    loop_until_sys_stat_is_set(UPDI_SYS_NVMPROG);
 
     if (!UPDI::is_control(UPDI::ENABLE_NVMPG)) {
       if (!UPDI::read_parameter()) break;
@@ -423,6 +467,7 @@ bool UPDI::enter_updi (void) {
       ABORT::start_timer(ABORT::CONTEXT, 100);
       // UPDI::fallback_speed(UPDI_USART_BAUDRATE >> i);
       SYS::trst_enable();
+      TIMER::delay_us(250);
       SYS::trst_disable();
       TIMER::delay_us(800);
       UPDI::BREAK(true);
@@ -460,6 +505,9 @@ bool UPDI::leave_updi (void) {
 bool UPDI::write_userrow(uint32_t start_addr, size_t byte_count) {
   uint16_t limit;
   for (;;) {
+    drain();
+    if (!loop_until_sys_stat_is_clear(UPDI_SYS_RSTSYS, 500)) break;
+
     /* send urowwrite_key */
     if (UPDI::send_bytes(UPDI::urowwrite_key, sizeof(UPDI::urowwrite_key)) != sizeof(UPDI::urowwrite_key)) break;
     #ifdef DEBUG_USE_USART
@@ -469,21 +517,11 @@ bool UPDI::write_userrow(uint32_t start_addr, size_t byte_count) {
     /* restart target : change mode */
     if (!UPDI::reset(true) || !UPDI::reset(false)) break;
 
-    limit = 200;
-    do {
-      TIMER::delay_us(50);
-      #ifdef DEBUG_USE_USART
-      DBG::print("(RST)", false);
-      #endif
-    } while (--limit && UPDI::is_sys_stat(UPDI::UPDI_SYS_RSTSYS));
+    /* Wait for system reset to finish */
+    if (!loop_until_sys_stat_is_clear(UPDI_SYS_RSTSYS, 500)) break;
 
-    limit = 1000;
-    do {
-      TIMER::delay_us(50);
-      #ifdef DEBUG_USE_USART
-      DBG::print("(PROG)", false);
-      #endif
-    } while (--limit && !UPDI::is_sys_stat(UPDI::UPDI_SYS_UROWPROG));
+    /* Make sure you are in USERROW mode */
+    loop_until_sys_stat_is_set(UPDI_SYS_UROWPROG);
 
     NVM::write_data(start_addr, byte_count);
 
@@ -497,13 +535,7 @@ bool UPDI::write_userrow(uint32_t start_addr, size_t byte_count) {
     DBG::print("(FINAL)", false);
     #endif
 
-    limit = 500;
-    do {
-      TIMER::delay_us(50);
-      #ifdef DEBUG_USE_USART
-      DBG::print("(UNPROG)", false);
-      #endif
-    } while (--limit && UPDI::is_sys_stat(UPDI::UPDI_SYS_UROWPROG));
+    loop_until_sys_stat_is_clear(UPDI_SYS_UROWPROG, 200);
 
     set_cs_stat(UPDI_CS_ASI_KEY_STATUS, UPDI_KEY_UROWWRITE);
 
@@ -519,22 +551,9 @@ bool UPDI::write_userrow(uint32_t start_addr, size_t byte_count) {
 
     /* restart target : change mode */
     if (!UPDI::reset(true) || !UPDI::reset(false)) break;
+    loop_until_sys_stat_is_clear(UPDI_SYS_RSTSYS);
 
-    limit = 200;
-    do {
-      TIMER::delay_us(50);
-      #ifdef DEBUG_USE_USART
-      DBG::print("(RST)", false);
-      #endif
-    } while (--limit && UPDI::is_sys_stat(UPDI::UPDI_SYS_RSTSYS));
-
-    limit = 500;
-    do {
-      TIMER::delay_us(50);
-      #ifdef DEBUG_USE_USART
-      DBG::print("(PROG)", false);
-      #endif
-    } while (--limit && !UPDI::is_sys_stat(UPDI::UPDI_SYS_NVMPROG));
+    loop_until_sys_stat_is_set(UPDI_SYS_NVMPROG);
 
     return true;
   }
@@ -587,7 +606,9 @@ bool UPDI::runtime (uint8_t updi_cmd) {
       case UPDI::UPDI_CMD_ERASE : {
         if (JTAG2::packet.body[1] == JTAG2::XMEGA_ERASE_CHIP
           && *((uint32_t*)&JTAG2::packet.body[2]) == 0) {
-          _result = UPDI::chip_erase();
+          _result = UPDI::is_control(UPDI::ENABLE_NVMPG)
+                  ? NVM::chip_erase()
+                  : UPDI::chip_erase();
         }
         break;
       }
